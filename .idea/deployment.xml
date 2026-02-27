@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="n269362@fg-s1.ing.unimo.it:22 password (82)" remoteFilesAllowedToDisappearOnAutoupload="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="n269362@fg-s1.ing.unimo.it:22 password (88)" remoteFilesAllowedToDisappearOnAutoupload="false">
     <serverData>
       <paths name="n269362@fg-s1.ing.unimo.it:22 password">
         <serverdata>
@@ -563,6 +563,48 @@
         </serverdata>
       </paths>
       <paths name="n269362@fg-s1.ing.unimo.it:22 password (82)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/hdd10t/n269362/dp-chunker" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="n269362@fg-s1.ing.unimo.it:22 password (83)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/hdd10t/n269362/dp-chunker" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="n269362@fg-s1.ing.unimo.it:22 password (84)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/hdd10t/n269362/dp-chunker" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="n269362@fg-s1.ing.unimo.it:22 password (85)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/hdd10t/n269362/dp-chunker" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="n269362@fg-s1.ing.unimo.it:22 password (86)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/hdd10t/n269362/dp-chunker" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="n269362@fg-s1.ing.unimo.it:22 password (87)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/hdd10t/n269362/dp-chunker" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="n269362@fg-s1.ing.unimo.it:22 password (88)">
         <serverdata>
           <mappings>
             <mapping deploy="/hdd10t/n269362/dp-chunker" local="$PROJECT_DIR$" />

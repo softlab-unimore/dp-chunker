@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="Python 3.10 (quantstats)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Remote Python 3.11.2 (sftp://n269362@fg-s1.ing.unimo.it:22/home/n269362/.virtualenvs/dp-chunker/bin/python)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="/hdd10t/n269362/dp-chunker/env_3" project-jdk-type="Python SDK" />
 </project>
