@@ -56,6 +56,6 @@ if __name__ == "__main__":
         doc = nlp(content)
         resolved_text = resolve_coreferences(doc)
 
-        resolved_text = d['content'][:start] + resolved_text
+        # resolved_text = d['content'][:start] + resolved_text
         print("Original:", d['content'])
         print("Resolved:", resolved_text)
