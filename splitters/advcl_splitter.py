@@ -7,10 +7,7 @@ class AdvclSplitter(BaseSplitter):
         if not self.has_verb(token):
             return None
 
-        nested_idxs = set()
-        for t in token.subtree:
-            if t.dep_ in {"relcl", "acl", "advcl"} and t.i != token.i:
-                nested_idxs.update(st.i for st in t.subtree)
+        nested_idxs = self.build_nested_idxs(token, {"relcl", "acl", "advcl"})
 
         clause_tokens = [
             t for t in token.subtree
@@ -18,6 +15,5 @@ class AdvclSplitter(BaseSplitter):
             and t.i not in nested_idxs
         ]
         clause_tokens = sorted(clause_tokens, key=lambda t: t.i)
-        adv_clause = " ".join(t.text for t in clause_tokens)
 
-        return {"type": "advcl", "subordinate": adv_clause.strip(), "tokens": clause_tokens}
+        return {"type": "advcl", "subordinate": self.build_clause_text(clause_tokens), "tokens": clause_tokens}

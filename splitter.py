@@ -3,7 +3,7 @@ from splitters.clause_splitter import ClauseSplitter
 
 if __name__ == '__main__':
 
-    # sentences = [
+    sentences = [
     #
     #     # advcl con advmod annidato
     #     "She left early because she felt sick.",
@@ -56,10 +56,7 @@ if __name__ == '__main__':
     #     # tutto insieme
     #     "The manager who hired him said that he had a chance to succeed because the team that she built was strong.",
     #     "The teacher who failed her believed that she had a reason to appeal because the exam that he wrote was unfair.",
-    # ]
-
-    sentences = [
-
+    #
         # relcl + advcl + ccomp
         "The scientist who discovered the cure said that he succeeded because he worked hard.",
         "The teacher who failed her believed that she cheated because the answers were identical.",

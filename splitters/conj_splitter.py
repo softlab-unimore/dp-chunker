@@ -4,7 +4,6 @@ from splitters.base_splitter import BaseSplitter
 class ConjSplitter(BaseSplitter):
 
     def split(self, doc, token):
-
         head = token.head
 
         # CASO C: conj nominale → gestito da expand_nominal_conj nell'orchestrator
@@ -14,22 +13,12 @@ class ConjSplitter(BaseSplitter):
         # CASO B: conj verbale con soggetto esplicito
         has_own_subj = any(ch.dep_ in {"nsubj", "nsubjpass"} for ch in token.children)
         if has_own_subj:
-            nested_idxs = set()
-            for t in token.subtree:
-                if t.dep_ in {"ccomp", "relcl", "acl", "advcl"} and t.i != token.i:
-                    nested_idxs.update(st.i for st in t.subtree)
-                    for ch in t.children:
-                        if ch.dep_ == "cc":
-                            nested_idxs.add(ch.i)
-
-            clause_tokens = [
-                t for t in token.subtree
-                if t.dep_ not in {"punct", "cc"}
-                and t.i not in nested_idxs
-            ]
-            clause_tokens = sorted(clause_tokens, key=lambda t: t.i)
-            clause_text = " ".join(t.text for t in clause_tokens)
-            return {"type": "conj", "subordinate": clause_text.strip(), "tokens": clause_tokens}
+            nested_idxs = self.build_nested_idxs(token, {"ccomp", "relcl", "acl", "advcl"}, include_cc=True)
+            clause_tokens = sorted(
+                [t for t in token.subtree if t.dep_ not in {"punct", "cc"} and t.i not in nested_idxs],
+                key=lambda t: t.i
+            )
+            return {"type": "conj", "subordinate": self.build_clause_text(clause_tokens), "tokens": clause_tokens}
 
         # CASO A: conj verbale senza soggetto → eredita soggetto dalla testa
         root = token
@@ -37,22 +26,11 @@ class ConjSplitter(BaseSplitter):
             root = root.head
         inherited_subj = [t for t in root.children if t.dep_ in {"nsubj", "nsubjpass"}]
 
-        # Escludi conj annidati, ccomp, relcl, acl, advcl e i loro subtree
-        nested_idxs = set()
-        for t in token.subtree:
-            if t.dep_ in {"conj", "ccomp", "relcl", "acl", "advcl"} and t.i != token.i:
-                nested_idxs.update(st.i for st in t.subtree)
-                for ch in t.children:
-                    if ch.dep_ == "cc":
-                        nested_idxs.add(ch.i)
-
-        clause_tokens = [
-            t for t in token.subtree
-            if t.dep_ not in {"punct", "cc"} and t.i not in nested_idxs
-        ]
-        clause_tokens = sorted(set(clause_tokens), key=lambda t: t.i)
-        clause_text = " ".join(
-            t.text for t in sorted(inherited_subj + clause_tokens, key=lambda t: t.i)
+        nested_idxs = self.build_nested_idxs(token, {"conj", "ccomp", "relcl", "acl", "advcl"}, include_cc=True)
+        clause_tokens = sorted(
+            set(t for t in token.subtree if t.dep_ not in {"punct", "cc"} and t.i not in nested_idxs),
+            key=lambda t: t.i
         )
+        clause_text = self.build_clause_text(inherited_subj + clause_tokens)
 
         return {"type": "conj", "subordinate": clause_text.strip(), "tokens": clause_tokens}
