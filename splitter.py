@@ -38,9 +38,17 @@ class ClauseSplitter:
         clause_tokens = [noun]
         clause_tokens = self.find_name_modifiers(clause_tokens, noun)
 
+        nested_idxs = set()
         for t in token.subtree:
-            if t.dep_ != "punct":
-                clause_tokens.append(t)
+            if t.dep_ in {"advcl", "relcl"} and t.i != token.i:
+                nested_idxs.update(st.i for st in t.subtree)
+
+        for t in token.subtree:
+            if t.dep_ == "punct":
+                continue
+            if t.i in nested_idxs:
+                continue
+            clause_tokens.append(t)
 
         clause_tokens = sorted(set(clause_tokens), key=lambda t: t.i)
         acl_clause = " ".join(t.text for t in clause_tokens)
@@ -58,63 +66,130 @@ class ClauseSplitter:
                 noun_np.append(ch)
         noun_np = sorted(noun_np, key=lambda t: t.i)
 
-        rel_pron = None
-        for ch in noun.children:
-            if ch.text.lower() in {"who", "that", "which", "whom"}:
-                rel_pron = ch
-                break
-
         subtree_tokens = [t for t in token.subtree if t.dep_ != "punct"]
 
-        rel_subj = [t for t in subtree_tokens if t.dep_ in {"nsubj", "nsubjpass"}]
-        rel_dobj = [t for t in subtree_tokens if t.dep_ in {"dobj", "obj", "pobj"}]
+        rel_pron = None
+        for ch in token.children:
+            if ch.dep_ in {"nsubj", "nsubjpass"} and ch.text.lower() in {"who", "that", "which", "whom"}:
+                rel_pron = ch
+                break
+        if rel_pron is None:
+            for ch in noun.children:
+                if ch.text.lower() in {"who", "that", "which", "whom"}:
+                    rel_pron = ch
+                    break
 
-        other_tokens = [t for t in subtree_tokens if t not in rel_subj + rel_dobj and t != token]
+        rel_subj_heads = [
+            t for t in subtree_tokens
+            if t.dep_ in {"nsubj", "nsubjpass"} and t.text.lower() not in {"who", "that", "which", "whom"}
+        ]
+        rel_subj_with_mods = []
+        for subj in rel_subj_heads:
+            for ch in subj.children:
+                if ch.dep_ in {"amod", "det"}:
+                    rel_subj_with_mods.append(ch)
+            rel_subj_with_mods.append(subj)
+        rel_subj = sorted(rel_subj_with_mods, key=lambda t: t.i)
 
-        clause_tokens = []
+        rel_dobj = [t for t in subtree_tokens if t.dep_ in {"dobj", "obj"}]
 
-        if rel_subj:
-            clause_tokens.extend(sorted(rel_subj, key=lambda t: t.i))
-            clause_tokens.append(token)  # verbo
-            if other_tokens:
-                clause_tokens.extend(sorted(other_tokens, key=lambda t: t.i))
+        has_rel_pron = rel_pron is not None or any(
+            t.text.lower() in {"that", "which", "whom", "who"}
+            for t in subtree_tokens
+        )
 
-            if not rel_dobj:
-                clause_tokens.extend(noun_np)
+        excluded = set()
+        excluded.update(t.i for t in rel_subj)
+        excluded.update(t.i for t in rel_dobj)
+        excluded.add(token.i)
+        if rel_pron:
+            excluded.add(rel_pron.i)
+
+        other_tokens = [t for t in subtree_tokens if t.i not in excluded]
+
+        # -------------------------------------------------------
+        # CASE 1: relative pronoun is SUBJECT (who/which subject)
+        # -------------------------------------------------------
+        if rel_pron is not None and not rel_subj:
+            clause_tokens = noun_np + [token] + other_tokens + rel_dobj
+            for dobj in rel_dobj:
+                self.find_name_modifiers(clause_tokens, dobj)
+
+            seen = set()
+            clause_ordered = []
+            np_idxs = {t.i for t in noun_np}
+            for t in sorted(clause_tokens, key=lambda t: (0 if t.i in np_idxs else 1, t.i)):
+                if t.i not in seen:
+                    clause_ordered.append(t)
+                    seen.add(t.i)
+
+            rel_clause = " ".join(t.text for t in clause_ordered)
+            used_tokens = sorted([t for t in subtree_tokens if t.i > noun.i], key=lambda t: t.i)
+            return {"type": "relcl", "subordinate": rel_clause.strip(), "tokens": used_tokens}
+
+        # -------------------------------------------------------
+        # CASE 2: explicit subject + explicit relative pronoun
+        # -------------------------------------------------------
+        elif rel_subj and has_rel_pron:
+            rel_pron_as_obj = [
+                t for t in rel_dobj
+                if t.text.lower() in {"that", "which", "whom", "who"} or t.pos_ == "VERB"
+            ]
+            true_dobj = [t for t in rel_dobj if t not in rel_pron_as_obj]
+
+            main_verb_idxs = set()
+            for v in rel_pron_as_obj:
+                if v.pos_ == "VERB":
+                    main_verb_idxs.update(t.i for t in v.subtree)
+
+            excluded.update(t.i for t in rel_pron_as_obj)
+            excluded.update(main_verb_idxs)
+
+            other_tokens = [t for t in subtree_tokens if t.i not in excluded]
+            clause_tokens = rel_subj + [token] + other_tokens
+
+            if not true_dobj and (rel_pron_as_obj or rel_pron is not None):
+                clause_tokens += noun_np
             else:
-                clause_tokens.extend(sorted(rel_dobj, key=lambda t: t.i))
-                for dobj in rel_dobj:
-                    clause_tokens = self.find_name_modifiers(clause_tokens, dobj)
+                clause_tokens += true_dobj
+                for dobj in true_dobj:
+                    self.find_name_modifiers(clause_tokens, dobj)
+
+            seen = set()
+            clause_ordered = []
+            for t in clause_tokens:
+                if t.i not in seen:
+                    clause_ordered.append(t)
+                    seen.add(t.i)
+
+            rel_clause = " ".join(t.text for t in clause_ordered)
+
+            used_tokens = sorted(
+                [t for t in subtree_tokens if t.i > noun.i and t.i not in main_verb_idxs],
+                key=lambda t: t.i
+            )
+            return {"type": "relcl", "subordinate": rel_clause.strip(), "tokens": used_tokens}
+
+        # -------------------------------------------------------
+        # CASE 3: zero relative (no relative pronoun)
+        # -------------------------------------------------------
         else:
-            clause_tokens.extend(noun_np)
-            clause_tokens.append(token)
-            if other_tokens:
-                clause_tokens.extend(sorted(other_tokens, key=lambda t: t.i))
-            if rel_dobj:
-                clause_tokens.extend(sorted(rel_dobj, key=lambda t: t.i))
-                for dobj in rel_dobj:
-                    clause_tokens = self.find_name_modifiers(clause_tokens, dobj)
+            zero_subj = [t for t in subtree_tokens if t.dep_ in {"nsubj", "nsubjpass"}]
+            clause_tokens = zero_subj + [token] + other_tokens + noun_np
 
-        seen = set()
-        clause_ordered = []
-        for t in clause_tokens:
-            if t.i not in seen:
-                clause_ordered.append(t)
-                seen.add(t.i)
+            for subj in zero_subj:
+                self.find_name_modifiers(clause_tokens, subj)
 
-        rel_clause = " ".join(t.text for t in clause_ordered)
+            seen = set()
+            clause_ordered = []
+            for t in clause_tokens:
+                if t.i not in seen:
+                    clause_ordered.append(t)
+                    seen.add(t.i)
 
-        used_tokens = []
-        noun_np_idxs = {t.i for t in noun_np}
-        for t in subtree_tokens:
-            if t.i not in noun_np_idxs:
-                used_tokens.append(t)
-        if rel_pron is not None and rel_pron.i not in {t.i for t in used_tokens}:
-            used_tokens.append(rel_pron)
-
-        used_tokens = sorted([t for t in used_tokens if t.i > noun.i], key=lambda t: t.i)
-
-        return {"type": "relcl", "subordinate": rel_clause.strip(), "tokens": used_tokens}
+            rel_clause = " ".join(t.text for t in clause_ordered)
+            used_tokens = sorted([t for t in subtree_tokens if t.i > noun.i], key=lambda t: t.i)
+            return {"type": "relcl", "subordinate": rel_clause.strip(), "tokens": used_tokens}
 
     # -----------------------------
     # MAIN DISPATCH METHOD
@@ -126,7 +201,14 @@ class ClauseSplitter:
 
         for token in doc:
             if token.dep_ in self.splitters and token.i not in used_tokens:
-                split_result = self.splitters[token.dep_](doc, token)
+
+                actual_dep = token.dep_
+                if token.dep_ == "relcl":
+                    has_to = any(ch.dep_ == "aux" and ch.text.lower() == "to" for ch in token.children)
+                    if has_to:
+                        actual_dep = "acl"
+
+                split_result = self.splitters[actual_dep](doc, token)
                 if split_result:
                     splits.append({
                         "type": split_result["type"],
@@ -146,33 +228,25 @@ if __name__=='__main__':
 
     sentences = [
 
-        #relcl con oggetto implicito
-        # "I saw the man you love.",
-        # "She met the author everyone admires.",
-        # "We bought the house they built.",
-        # "He found the book she recommended.",
+        # relcl + advcl
+        "The book that John wrote became famous because it inspired many readers.",
+        "The woman who looked happy danced when the music started.",
 
-        #relcl con pronome relativo soggetto
-        "The woman who looked happy danced.",
-        "The boy who won the race celebrated.",
-        "The scientist who discovered the cure received an award.",
-        "The student who solved the problem smiled.",
+        # relcl + acl
+        "The scientist who discovered the cure had a chance to save millions.",
+        "The painting which the museum bought had a story to tell.",
 
-        # relcl con pronome relativo oggetto
-        "The book that John wrote won a prize.",
-        "The movie that we watched was amazing.",
-        "The car that she bought is very fast.",
-        "The song that they played became famous.",
+        # advcl + acl
+        "She had a decision to make because her boss resigned.",
+        "He found a way to escape before the door closed.",
 
-        # relcl con which
-        "The house which Jack built collapsed.",
-        "The computer which she repaired works perfectly.",
-        "The painting which the museum bought is valuable.",
+        # relcl + relcl
+        "The man I met introduced me to the woman who won the prize.",
+        "The book that she wrote inspired the student who solved the problem.",
 
-        # relcl senza pronome relativo (zero relative)
-        "The man I met yesterday was friendly.",
-        "The car we rented broke down.",
-        "The movie we saw last night was boring.",
+        # tutti e tre insieme
+        "The scientist who discovered the cure had a chance to publish because the journal accepted his work.",
+        "The movie that we watched had a scene to remember because it moved everyone.",
 
     ]
 
