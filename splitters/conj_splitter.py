@@ -12,7 +12,10 @@ class ConjSplitter(BaseSplitter):
 
         has_own_subj = any(ch.dep_ in {"nsubj", "nsubjpass"} for ch in token.children)
         if has_own_subj:
-            clause_tokens = [t for t in token.subtree if t.dep_ != "punct"]
+            clause_tokens = [
+                t for t in token.subtree
+                if t.dep_ not in {"punct", "cc"}
+            ]
             clause_tokens = sorted(clause_tokens, key=lambda t: t.i)
             clause_text = " ".join(t.text for t in clause_tokens)
             return {"type": "conj", "subordinate": clause_text.strip(), "tokens": clause_tokens}

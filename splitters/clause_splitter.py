@@ -1,9 +1,10 @@
 import spacy
 
-from splitters.acl_splitter import AclSplitter
 from splitters.advcl_splitter import AdvclSplitter
-from splitters.conj_splitter import ConjSplitter
+from splitters.acl_splitter import AclSplitter
 from splitters.relcl_splitter import RelclSplitter
+from splitters.conj_splitter import ConjSplitter
+from splitters.ccomp_splitter import CcompSplitter
 
 
 class ClauseSplitter:
@@ -14,12 +15,14 @@ class ClauseSplitter:
         self.acl_splitter   = AclSplitter(self.nlp)
         self.relcl_splitter = RelclSplitter(self.nlp)
         self.conj_splitter  = ConjSplitter(self.nlp)
+        self.ccomp_splitter = CcompSplitter(self.nlp)
 
         self.splitters = {
             "advcl": lambda doc, token: self.advcl_splitter.split(doc, token),
             "acl":   lambda doc, token: self.acl_splitter.split(doc, token),
             "relcl": lambda doc, token: self.relcl_splitter.split(doc, token),
             "conj":  lambda doc, token: self.conj_splitter.split(doc, token),
+            "ccomp": lambda doc, token: self.ccomp_splitter.split(doc, token),
         }
 
     # ------------------------------------------------------------------
@@ -150,6 +153,13 @@ class ClauseSplitter:
                     )
                     if has_to:
                         actual_dep = "acl"
+
+                if token.dep_ == "conj":
+                    root = token
+                    while root.dep_ == "conj":
+                        root = root.head
+                    if root.dep_ in {"ccomp", "xcomp"}:
+                        actual_dep = "ccomp"
 
                 split_result = self.splitters[actual_dep](doc, token)
                 if split_result:
