@@ -106,12 +106,19 @@ class ClauseSplitter:
                         nominal_idxs.add(ch.i)
 
             root = [t for t in doc if t.dep_ == "ROOT"][0]
+            ccomp_idxs = set()
+            for ch in root.children:
+                if ch.dep_ == "ccomp":
+                    ccomp_idxs.update(t.i for t in ch.subtree)
+
             relcl_idxs = {r.i for relcl in relcl_list for r in relcl.subtree}
+
             predicate_tokens = [
                 t for t in root.subtree
                 if t.i not in nominal_idxs
                 and t.dep_ not in {"punct"}
                 and t.i not in relcl_idxs
+                and t.i not in ccomp_idxs
             ]
             predicate_tokens = sorted(predicate_tokens, key=lambda t: t.i)
             predicate_text = " ".join(t.text for t in predicate_tokens)
@@ -119,16 +126,22 @@ class ClauseSplitter:
 
             adj_mods = [m for m in mods if m.pos_ == "ADJ"]
             for noun in nouns:
+                noun_mods = sorted(
+                    [ch for ch in noun.children if ch.dep_ in {"det", "amod"}],
+                    key=lambda t: t.i
+                )
+                noun_text = " ".join(t.text for t in noun_mods) + " " + noun.text if noun_mods else noun.text
+
                 if adj_mods:
                     for mod in adj_mods:
                         splits.append({
                             "type": "nominal_conj",
-                            "subordinate": f"{mod.text} {noun.text} {predicate_text}"
+                            "subordinate": f"{mod.text} {noun_text} {predicate_text}"
                         })
                 else:
                     splits.append({
                         "type": "nominal_conj",
-                        "subordinate": f"{noun.text} {predicate_text}"
+                        "subordinate": f"{noun_text} {predicate_text}"
                     })
 
             for relcl in relcl_list:
@@ -142,10 +155,21 @@ class ClauseSplitter:
                             "subordinate": clause
                         })
 
+            for ch in root.children:
+                if ch.dep_ == "ccomp" and ch.i not in used_tokens:
+                    split_result = self.ccomp_splitter.split(doc, ch)
+                    if split_result:
+                        splits.append({
+                            "type": split_result["type"],
+                            "subordinate": split_result["subordinate"]
+                        })
+                        used_tokens.update(t.i for t in split_result["tokens"])
+
         for token in doc:
             if token.dep_ in self.splitters and token.i not in used_tokens:
 
                 actual_dep = token.dep_
+
                 if token.dep_ == "relcl":
                     has_to = any(
                         ch.dep_ == "aux" and ch.text.lower() == "to"
