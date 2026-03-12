@@ -13,10 +13,10 @@ class RelclSplitter(BaseSplitter):
                 noun_np.append(ch)
         noun_np = sorted(noun_np, key=lambda t: t.i)
 
-        # Escludi advcl annidati e i loro subtree
+        # Escludi advcl e relcl annidate e i loro subtree
         nested_idxs = set()
         for t in token.subtree:
-            if t.dep_ in {"advcl"} and t.i != token.i:
+            if t.dep_ in {"advcl", "relcl", "acl", "ccomp"} and t.i != token.i:
                 nested_idxs.update(st.i for st in t.subtree)
 
         subtree_tokens = [
@@ -66,6 +66,7 @@ class RelclSplitter(BaseSplitter):
             t for t in subtree_tokens
             if t.i not in excluded
             and t.i not in nested_idxs
+            and t.dep_ != "mark"
         ]
 
         # -------------------------------------------------------
@@ -85,7 +86,6 @@ class RelclSplitter(BaseSplitter):
                     seen.add(t.i)
 
             rel_clause = " ".join(t.text for t in clause_ordered)
-            # used_tokens usa subtree_tokens (senza advcl) così process_nested può processarli
             used_tokens = sorted([t for t in subtree_tokens if t.i > noun.i], key=lambda t: t.i)
             return {"type": "relcl", "subordinate": rel_clause.strip(), "tokens": used_tokens}
 
@@ -111,6 +111,7 @@ class RelclSplitter(BaseSplitter):
                 t for t in subtree_tokens
                 if t.i not in excluded
                 and t.i not in nested_idxs
+                and t.dep_ != "mark"
             ]
             clause_tokens = rel_subj + [token] + other_tokens
 
@@ -129,7 +130,6 @@ class RelclSplitter(BaseSplitter):
                     seen.add(t.i)
 
             rel_clause = " ".join(t.text for t in clause_ordered)
-            # used_tokens usa subtree_tokens (senza advcl) così process_nested può processarli
             used_tokens = sorted(
                 [t for t in subtree_tokens if t.i > noun.i and t.i not in main_verb_idxs],
                 key=lambda t: t.i
@@ -157,6 +157,5 @@ class RelclSplitter(BaseSplitter):
                     seen.add(t.i)
 
             rel_clause = " ".join(t.text for t in clause_ordered)
-            # used_tokens usa subtree_tokens (senza advcl) così process_nested può processarli
             used_tokens = sorted([t for t in subtree_tokens if t.i > noun.i], key=lambda t: t.i)
             return {"type": "relcl", "subordinate": rel_clause.strip(), "tokens": used_tokens}
