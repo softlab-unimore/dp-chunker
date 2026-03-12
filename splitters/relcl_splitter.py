@@ -13,7 +13,16 @@ class RelclSplitter(BaseSplitter):
                 noun_np.append(ch)
         noun_np = sorted(noun_np, key=lambda t: t.i)
 
-        subtree_tokens = [t for t in token.subtree if t.dep_ != "punct"]
+        # Escludi advcl annidati e i loro subtree
+        nested_idxs = set()
+        for t in token.subtree:
+            if t.dep_ in {"advcl"} and t.i != token.i:
+                nested_idxs.update(st.i for st in t.subtree)
+
+        subtree_tokens = [
+            t for t in token.subtree
+            if t.dep_ != "punct" and t.i not in nested_idxs
+        ]
 
         rel_pron = None
         for ch in token.children:
@@ -52,7 +61,12 @@ class RelclSplitter(BaseSplitter):
         if rel_pron:
             excluded.add(rel_pron.i)
 
-        other_tokens = [t for t in subtree_tokens if t.i not in excluded]
+        # Escludi nested_idxs anche da other_tokens
+        other_tokens = [
+            t for t in subtree_tokens
+            if t.i not in excluded
+            and t.i not in nested_idxs
+        ]
 
         # -------------------------------------------------------
         # CASE 1: relative pronoun is SUBJECT (who/which subject)
@@ -71,6 +85,7 @@ class RelclSplitter(BaseSplitter):
                     seen.add(t.i)
 
             rel_clause = " ".join(t.text for t in clause_ordered)
+            # used_tokens usa subtree_tokens (senza advcl) così process_nested può processarli
             used_tokens = sorted([t for t in subtree_tokens if t.i > noun.i], key=lambda t: t.i)
             return {"type": "relcl", "subordinate": rel_clause.strip(), "tokens": used_tokens}
 
@@ -92,7 +107,11 @@ class RelclSplitter(BaseSplitter):
             excluded.update(t.i for t in rel_pron_as_obj)
             excluded.update(main_verb_idxs)
 
-            other_tokens = [t for t in subtree_tokens if t.i not in excluded]
+            other_tokens = [
+                t for t in subtree_tokens
+                if t.i not in excluded
+                and t.i not in nested_idxs
+            ]
             clause_tokens = rel_subj + [token] + other_tokens
 
             if not true_dobj and (rel_pron_as_obj or rel_pron is not None):
@@ -110,6 +129,7 @@ class RelclSplitter(BaseSplitter):
                     seen.add(t.i)
 
             rel_clause = " ".join(t.text for t in clause_ordered)
+            # used_tokens usa subtree_tokens (senza advcl) così process_nested può processarli
             used_tokens = sorted(
                 [t for t in subtree_tokens if t.i > noun.i and t.i not in main_verb_idxs],
                 key=lambda t: t.i
@@ -137,5 +157,6 @@ class RelclSplitter(BaseSplitter):
                     seen.add(t.i)
 
             rel_clause = " ".join(t.text for t in clause_ordered)
+            # used_tokens usa subtree_tokens (senza advcl) così process_nested può processarli
             used_tokens = sorted([t for t in subtree_tokens if t.i > noun.i], key=lambda t: t.i)
             return {"type": "relcl", "subordinate": rel_clause.strip(), "tokens": used_tokens}

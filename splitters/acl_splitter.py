@@ -3,14 +3,16 @@ from splitters.base_splitter import BaseSplitter
 
 class AclSplitter(BaseSplitter):
 
-    def split(self, doc, token):
-        noun = token.head
+    def split(self, doc, token, noun=None):
+        if noun is None:
+            noun = token.head
+
         clause_tokens = [noun]
         clause_tokens = self.find_name_modifiers(clause_tokens, noun)
 
         nested_idxs = set()
         for t in token.subtree:
-            if t.dep_ in {"advcl", "relcl"} and t.i != token.i:
+            if t.dep_ in {"advcl", "relcl", "acl", "conj", "ccomp"} and t.i != token.i:
                 nested_idxs.update(st.i for st in t.subtree)
 
         for t in token.subtree:
