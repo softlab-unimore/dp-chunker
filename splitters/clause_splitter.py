@@ -13,21 +13,21 @@ class ClauseSplitter(BaseSplitter):
 
     def __init__(self, model="en_core_web_lg"):
         self.nlp = spacy.load(model)
-        self.advcl_splitter = AdvclSplitter(self.nlp)
-        self.acl_splitter   = AclSplitter(self.nlp)
-        self.relcl_splitter = RelclSplitter(self.nlp)
-        self.conj_splitter  = ConjSplitter(self.nlp)
-        self.ccomp_splitter = CcompSplitter(self.nlp)
+        self.advcl_splitter     = AdvclSplitter(self.nlp)
+        self.acl_splitter       = AclSplitter(self.nlp)
+        self.relcl_splitter     = RelclSplitter(self.nlp)
+        self.conj_splitter      = ConjSplitter(self.nlp)
+        self.ccomp_splitter     = CcompSplitter(self.nlp)
         self.parataxis_splitter = ParataxisSplitter(self.nlp)
 
         self.splitters = {
-            "advcl": lambda doc, token: self.advcl_splitter.split(doc, token),
-            "acl":   lambda doc, token: self.acl_splitter.split(doc, token),
-            "relcl": lambda doc, token: self.relcl_splitter.split(doc, token),
-            "conj":  lambda doc, token: self.conj_splitter.split(doc, token),
-            "ccomp": lambda doc, token: self.ccomp_splitter.split(doc, token),
-            "parataxis": lambda doc, token: self.parataxis_splitter.split(doc, token),
-            "pobj":  lambda doc, token: (
+            "advcl":    lambda doc, token: self.advcl_splitter.split(doc, token),
+            "acl":      lambda doc, token: self.acl_splitter.split(doc, token),
+            "relcl":    lambda doc, token: self.relcl_splitter.split(doc, token),
+            "conj":     lambda doc, token: self.conj_splitter.split(doc, token),
+            "ccomp":    lambda doc, token: self.ccomp_splitter.split(doc, token),
+            "parataxis":lambda doc, token: self.parataxis_splitter.split(doc, token),
+            "pobj":     lambda doc, token: (
                 self.acl_splitter.split(
                     doc, token,
                     noun=next(
@@ -46,8 +46,7 @@ class ClauseSplitter(BaseSplitter):
     # ------------------------------------------------------------------
     # RESOLVE ACTUAL DEP (redirections)
     # ------------------------------------------------------------------
-    def resolve_dep(self, token):
-        """Resolve redirections: relcl infinitive → acl, conj of ccomp → ccomp."""
+    def resolve_dep(self, token, doc=None):
         dep = token.dep_
 
         if dep == "relcl":
@@ -61,14 +60,18 @@ class ClauseSplitter(BaseSplitter):
             if root.dep_ in {"ccomp", "xcomp"}:
                 return "ccomp"
 
+        # Redirect disguised parataxis (ccomp separated by : or ;)
+        if dep == "ccomp" and doc is not None:
+            if self.parataxis_splitter.is_disguised_parataxis(doc, token):
+                return "parataxis"
+
         return dep
 
     # ------------------------------------------------------------------
     # DISPATCH SPLIT + APPEND
     # ------------------------------------------------------------------
     def dispatch(self, doc, token, splits, used_tokens, recurse=True):
-        """Dispatch a token to the appropriate splitter and update state."""
-        actual_dep = self.resolve_dep(token)
+        actual_dep = self.resolve_dep(token, doc)
         if actual_dep not in self.splitters:
             return
 
@@ -79,10 +82,9 @@ class ClauseSplitter(BaseSplitter):
         splits.append({"type": result["type"], "subordinate": result["subordinate"]})
         used_tokens.update(t.i for t in result["tokens"])
 
-        if recurse and actual_dep in {"ccomp", "relcl", "acl", "conj"}:
+        if recurse and actual_dep in {"ccomp", "relcl", "acl", "conj", "parataxis"}:
             self.process_nested(doc, token, splits, used_tokens)
 
-        # Se è un pobj VERB, marca anche il "to" (prep head) come usato
         if token.dep_ == "pobj" and token.pos_ == "VERB":
             if token.head.dep_ == "prep" and token.head.text.lower() == "to":
                 used_tokens.add(token.head.i)
@@ -91,11 +93,10 @@ class ClauseSplitter(BaseSplitter):
     # PROCESS NESTED SUBORDINATES
     # ------------------------------------------------------------------
     def process_nested(self, doc, token, splits, used_tokens):
-        """Recursively process subordinate clauses nested inside a token's subtree."""
         for t in token.subtree:
             if t.i == token.i or t.i in used_tokens:
                 continue
-            if self.resolve_dep(t) in self.splitters:
+            if self.resolve_dep(t, doc) in self.splitters:
                 self.dispatch(doc, t, splits, used_tokens, recurse=True)
 
     # ------------------------------------------------------------------
@@ -155,7 +156,6 @@ class ClauseSplitter(BaseSplitter):
             mods       = group["mods"]
             relcl_list = group["relcl"]
 
-            # Marca nomi, modificatori e relcl come usati
             for noun in nouns:
                 used_tokens.add(noun.i)
             for mod in mods:
@@ -163,7 +163,6 @@ class ClauseSplitter(BaseSplitter):
             for relcl in relcl_list:
                 used_tokens.update(t.i for t in relcl.subtree)
 
-            # Indici del gruppo nominale (nomi + modificatori + loro cc)
             nominal_idxs = set()
             for noun in nouns:
                 nominal_idxs.add(noun.i)
@@ -172,22 +171,27 @@ class ClauseSplitter(BaseSplitter):
                 nominal_idxs.add(mod.i)
                 nominal_idxs.update(ch.i for ch in mod.children if ch.dep_ == "cc")
 
-            # Indici da escludere dal predicato
+            # Usa il verbo testa del gruppo nominale come base del predicato
+            # (può essere diverso dalla ROOT se il gruppo è soggetto di una subordinata)
+            head_noun = group["head_token"]
+            pred_root = head_noun.head if head_noun.head.pos_ in {"VERB", "AUX"} else root
+
             excluded_from_pred = (
                 nominal_idxs
                 | {r.i for relcl in relcl_list for r in relcl.subtree}
-                | self.collect_subtree_idxs(root, "ccomp")
-                | self.collect_subtree_idxs(root, "advcl")
+                | self.collect_subtree_idxs(pred_root, "ccomp")
+                | self.collect_subtree_idxs(pred_root, "advcl")
+                | self.collect_subtree_idxs(pred_root, "parataxis")
+                | self.collect_subtree_idxs(pred_root, "relcl")
             )
 
             predicate_tokens = sorted(
-                [t for t in root.subtree if t.i not in excluded_from_pred and t.dep_ != "punct"],
+                [t for t in pred_root.subtree if t.i not in excluded_from_pred and t.dep_ != "punct"],
                 key=lambda t: t.i
             )
             predicate_text = self.build_clause_text(predicate_tokens)
             used_tokens.update(t.i for t in predicate_tokens)
 
-            # Combina ogni nome con il predicato
             adj_mods = [m for m in mods if m.pos_ == "ADJ"]
             for noun in nouns:
                 noun_mods = sorted(
@@ -202,7 +206,6 @@ class ClauseSplitter(BaseSplitter):
                 else:
                     splits.append({"type": "nominal_conj", "subordinate": f"{noun_text} {predicate_text}"})
 
-            # Propaga relcl a tutti i nomi
             for relcl in relcl_list:
                 for noun in nouns:
                     result = self.relcl_splitter.split(doc, relcl)
@@ -210,11 +213,30 @@ class ClauseSplitter(BaseSplitter):
                         clause = result["subordinate"].replace(relcl.head.text, noun.text)
                         splits.append({"type": "relcl_propagated", "subordinate": clause})
 
-            # Processa ccomp e advcl della ROOT separatamente
-            for dep in ("ccomp", "advcl"):
-                for ch in root.children:
+            for dep in ("ccomp", "advcl", "parataxis"):
+                for ch in pred_root.children:
                     if ch.dep_ == dep and ch.i not in used_tokens:
-                        self.dispatch(doc, ch, splits, used_tokens, recurse=(dep == "ccomp"))
+                        self.dispatch(doc, ch, splits, used_tokens, recurse=(dep != "advcl"))
+
+            # Se pred_root != ROOT globale, processa la ROOT come clausola separata
+            if pred_root != root and root.i not in used_tokens:
+                ccomp_idxs = self.collect_subtree_idxs(root, "ccomp")
+                advcl_idxs = self.collect_subtree_idxs(root, "advcl")
+                root_tokens = sorted(
+                    [t for t in root.subtree
+                     if t.i not in used_tokens
+                     and t.i not in ccomp_idxs
+                     and t.i not in advcl_idxs
+                     and t.dep_ not in {"punct", "mark", "cc"}],
+                    key=lambda t: t.i
+                )
+                if root_tokens:
+                    splits.append({"type": "main", "subordinate": self.build_clause_text(root_tokens)})
+                    used_tokens.update(t.i for t in root_tokens)
+                for dep in ("ccomp", "advcl", "parataxis"):
+                    for ch in root.children:
+                        if ch.dep_ == dep and ch.i not in used_tokens:
+                            self.dispatch(doc, ch, splits, used_tokens, recurse=(dep != "advcl"))
 
         # ---- Gestione subordinate normali ---------------------------
         for token in doc:
