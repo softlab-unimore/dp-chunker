@@ -7,11 +7,11 @@ class AdvclSplitter(BaseSplitter):
         if not self.has_verb(token):
             return None
 
-        nested_idxs = self.build_nested_idxs(token, {"relcl", "acl", "advcl"})
+        nested_idxs = self.build_nested_idxs(token, {"relcl", "acl", "advcl", "parataxis"})
 
         clause_tokens = [
             t for t in token.subtree
-            if not (t.dep_ in ["mark", "punct"] and t.head.i == token.i)
+            if not (t.dep_ in ["mark", "punct"] and t.head.i == token.i) # TODO: controllare se va tolto il controllo su head
             and t.i not in nested_idxs
         ]
         clause_tokens = sorted(clause_tokens, key=lambda t: t.i)

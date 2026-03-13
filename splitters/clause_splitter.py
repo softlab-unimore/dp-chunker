@@ -6,6 +6,7 @@ from splitters.acl_splitter import AclSplitter
 from splitters.relcl_splitter import RelclSplitter
 from splitters.conj_splitter import ConjSplitter
 from splitters.ccomp_splitter import CcompSplitter
+from splitters.parataxis_splitter import ParataxisSplitter
 
 
 class ClauseSplitter(BaseSplitter):
@@ -17,6 +18,7 @@ class ClauseSplitter(BaseSplitter):
         self.relcl_splitter = RelclSplitter(self.nlp)
         self.conj_splitter  = ConjSplitter(self.nlp)
         self.ccomp_splitter = CcompSplitter(self.nlp)
+        self.parataxis_splitter = ParataxisSplitter(self.nlp)
 
         self.splitters = {
             "advcl": lambda doc, token: self.advcl_splitter.split(doc, token),
@@ -24,6 +26,7 @@ class ClauseSplitter(BaseSplitter):
             "relcl": lambda doc, token: self.relcl_splitter.split(doc, token),
             "conj":  lambda doc, token: self.conj_splitter.split(doc, token),
             "ccomp": lambda doc, token: self.ccomp_splitter.split(doc, token),
+            "parataxis": lambda doc, token: self.parataxis_splitter.split(doc, token),
             "pobj":  lambda doc, token: (
                 self.acl_splitter.split(
                     doc, token,

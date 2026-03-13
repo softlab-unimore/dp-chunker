@@ -57,46 +57,93 @@ if __name__ == '__main__':
     #     "The manager who hired him said that he had a chance to succeed because the team that she built was strong.",
     #     "The teacher who failed her believed that she had a reason to appeal because the exam that he wrote was unfair.",
     #
-        # relcl + advcl + ccomp
-        "The scientist who discovered the cure said that he succeeded because he worked hard.",
-        "The teacher who failed her believed that she cheated because the answers were identical.",
+        # # relcl + advcl + ccomp
+        # "The scientist who discovered the cure said that he succeeded because he worked hard.",
+        # "The teacher who failed her believed that she cheated because the answers were identical.",
+        #
+        # # relcl + acl + advcl
+        # "The man who had a plan to escape left before the guards arrived.",
+        # "The woman who found a way to survive waited until the storm passed.",
+        #
+        # # ccomp + relcl + advcl
+        # "She told me that the doctor who treated him left because the hospital closed.",
+        # "He said that the lawyer who defended her won because the evidence was clear.",
+        #
+        # # nominal conj + relcl + advcl
+        # "The doctors and nurses who treated him worked harder because the situation was critical.",
+        # "The professors and students who attended protested because the rules were unfair.",
+        #
+        # # nominal conj + ccomp + advcl
+        # "The managers and employees said that the policy was wrong because it hurt everyone.",
+        # "The teachers and parents believed that the system failed because nobody acted.",
+        #
+        # # ccomp + ccomp + relcl
+        # "She knows that he believes that the woman who called was lying.",
+        # "He said that she thinks that the man who left never returned.",
+        #
+        # # relcl + relcl + ccomp
+        # "The book that the author who won the prize wrote inspired millions.",
+        # "The cure that the scientist who worked alone discovered saved thousands.",
+        #
+        # # advcl + acl + ccomp
+        # "He succeeded because he had a strategy to follow that his mentor recommended.",
+        # "She failed because she missed a chance to prepare that her teacher offered.",
+        #
+        # # conj + ccomp + relcl
+        # "He came home and said that the woman who called was his sister.",
+        # "She left early and told me that the man who followed her was dangerous.",
+        #
+        # # tutto insieme
+        # "The scientist who discovered the cure said that he had a chance to publish because the journal that she recommended accepted his work.",
+        # "The teacher who inspired her believed that she had a reason to succeed because the school that he founded supported its students.",
+        # "The managers and employees who attended said that they found a way to solve the problem because the consultant that the board hired was excellent.",
 
-        # relcl + acl + advcl
-        "The man who had a plan to escape left before the guards arrived.",
-        "The woman who found a way to survive waited until the storm passed.",
+        # # dep_=parataxis esplicito
+        # "I know, I said it before.",
+        # "She is smart, I believe.",
+        # "He will come, I suppose.",
+        # "It was wrong, I admit.",
+        #
+        # # disguised parataxis con ":"
+        # "She left early: she was tired.",
+        # "The result was clear: they had failed.",
+        # "He made his choice: he resigned.",
+        # "The answer is simple: nobody came.",
+        #
+        # # disguised parataxis con ";"
+        # "He said goodbye; he never returned.",
+        # "She worked hard; the results showed it.",
+        # "The door was open; someone had broken in.",
+        #
+        # # parataxis + altre subordinate
+        # "She left early: she was tired because the meeting had gone badly.",
+        # "I know, I said it before when we met.",
+        # "The result was clear: the man who led the project had failed.",
 
-        # ccomp + relcl + advcl
-        "She told me that the doctor who treated him left because the hospital closed.",
-        "He said that the lawyer who defended her won because the evidence was clear.",
+        # parataxis esplicito con subordinate annidate
+        "I know, I said it before because I was angry.",
+        "She is smart, I believe, because she solved the problem that nobody could fix.",
+        "He will come, I suppose, if the weather is good.",
+        "It was wrong, I admit, because the man who led the project never consulted anyone.",
 
-        # nominal conj + relcl + advcl
-        "The doctors and nurses who treated him worked harder because the situation was critical.",
-        "The professors and students who attended protested because the rules were unfair.",
+        # disguised parataxis con ":" + subordinate
+        "The result was clear: the team that worked hardest had won because they prepared well.",
+        "She made her decision: she would leave because the company that hired her had changed.",
+        "The answer was obvious: the student who studied every day passed because he never gave up.",
+        "He understood the truth: the woman he loved had left because he never listened.",
 
-        # nominal conj + ccomp + advcl
-        "The managers and employees said that the policy was wrong because it hurt everyone.",
-        "The teachers and parents believed that the system failed because nobody acted.",
+        # disguised parataxis con ";" + subordinate
+        "She worked hard; the results showed it because the numbers never lie.",
+        "He said goodbye; he never returned because the city that raised him had changed.",
+        "The door was open; someone had broken in before the guard who patrolled arrived.",
 
-        # ccomp + ccomp + relcl
-        "She knows that he believes that the woman who called was lying.",
-        "He said that she thinks that the man who left never returned.",
+        # parataxis + ccomp
+        "I know, she believes that he is innocent because the evidence was clear.",
+        "He admitted it; she thinks that the man who confessed was lying because he was scared.",
 
-        # relcl + relcl + ccomp
-        "The book that the author who won the prize wrote inspired millions.",
-        "The cure that the scientist who worked alone discovered saved thousands.",
-
-        # advcl + acl + ccomp
-        "He succeeded because he had a strategy to follow that his mentor recommended.",
-        "She failed because she missed a chance to prepare that her teacher offered.",
-
-        # conj + ccomp + relcl
-        "He came home and said that the woman who called was his sister.",
-        "She left early and told me that the man who followed her was dangerous.",
-
-        # tutto insieme
-        "The scientist who discovered the cure said that he had a chance to publish because the journal that she recommended accepted his work.",
-        "The teacher who inspired her believed that she had a reason to succeed because the school that he founded supported its students.",
-        "The managers and employees who attended said that they found a way to solve the problem because the consultant that the board hired was excellent.",
+        # parataxis + nominal conj
+        "The professors and students protested; the dean announced that the policy would change.",
+        "I know, the teachers and parents believe that the system failed because nobody acted.",
     ]
 
     splitter = ClauseSplitter()

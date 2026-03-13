@@ -10,7 +10,7 @@ class AclSplitter(BaseSplitter):
         clause_tokens = [noun]
         self.find_name_modifiers(clause_tokens, noun)
 
-        nested_idxs = self.build_nested_idxs(token, {"advcl", "relcl", "acl", "conj", "ccomp"})
+        nested_idxs = self.build_nested_idxs(token, {"advcl", "relcl", "acl", "conj", "ccomp", "parataxis"})
 
         for t in token.subtree:
             if t.dep_ == "punct" or t.i in nested_idxs:

@@ -13,7 +13,7 @@ class ConjSplitter(BaseSplitter):
         # CASO B: conj verbale con soggetto esplicito
         has_own_subj = any(ch.dep_ in {"nsubj", "nsubjpass"} for ch in token.children)
         if has_own_subj:
-            nested_idxs = self.build_nested_idxs(token, {"ccomp", "relcl", "acl", "advcl"}, include_cc=True)
+            nested_idxs = self.build_nested_idxs(token, {"ccomp", "relcl", "acl", "advcl", "parataxis"}, include_cc=True)
             clause_tokens = sorted(
                 [t for t in token.subtree if t.dep_ not in {"punct", "cc"} and t.i not in nested_idxs],
                 key=lambda t: t.i

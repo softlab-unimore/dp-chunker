@@ -7,7 +7,7 @@ class CcompSplitter(BaseSplitter):
         if token.dep_ == "xcomp":
             return None
 
-        nested_idxs = self.build_nested_idxs(token, {"advcl", "relcl", "acl", "conj", "ccomp"}, include_cc=True)
+        nested_idxs = self.build_nested_idxs(token, {"advcl", "relcl", "acl", "conj", "ccomp", "parataxis"}, include_cc=True)
 
         # Escludi cc diretti del token
         for ch in token.children:
