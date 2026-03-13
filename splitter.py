@@ -120,30 +120,92 @@ if __name__ == '__main__':
         # "I know, I said it before when we met.",
         # "The result was clear: the man who led the project had failed.",
 
-        # parataxis esplicito con subordinate annidate
-        "I know, I said it before because I was angry.",
-        "She is smart, I believe, because she solved the problem that nobody could fix.",
-        "He will come, I suppose, if the weather is good.",
-        "It was wrong, I admit, because the man who led the project never consulted anyone.",
+        # # parataxis esplicito con subordinate annidate
+        # "I know, I said it before because I was angry.",
+        # "She is smart, I believe, because she solved the problem that nobody could fix.",
+        # "He will come, I suppose, if the weather is good.",
+        # "It was wrong, I admit, because the man who led the project never consulted anyone.",
+        #
+        # # disguised parataxis con ":" + subordinate
+        # "The result was clear: the team that worked hardest had won because they prepared well.",
+        # "She made her decision: she would leave because the company that hired her had changed.",
+        # "The answer was obvious: the student who studied every day passed because he never gave up.",
+        # "He understood the truth: the woman he loved had left because he never listened.",
+        #
+        # # disguised parataxis con ";" + subordinate
+        # "She worked hard; the results showed it because the numbers never lie.",
+        # "He said goodbye; he never returned because the city that raised him had changed.",
+        # "The door was open; someone had broken in before the guard who patrolled arrived.",
+        #
+        # # parataxis + ccomp
+        # "I know, she believes that he is innocent because the evidence was clear.",
+        # "He admitted it; she thinks that the man who confessed was lying because he was scared.",
+        #
+        # # parataxis + nominal conj
+        # "The professors and students protested; the dean announced that the policy would change.",
+        # "I know, the teachers and parents believe that the system failed because nobody acted.",
 
-        # disguised parataxis con ":" + subordinate
-        "The result was clear: the team that worked hardest had won because they prepared well.",
-        "She made her decision: she would leave because the company that hired her had changed.",
+        # Base cases già testati
+        "He came home, took a shower and immediately went to bed.",
+        "He met her at the station and he kissed her.",
+        "American and British professors and students are very good.",
+        "American and British professors and students who love something are very good.",
+        "The book that John wrote became famous because it inspired many readers.",
+        "The woman who looked happy danced when the music started.",
+        "The scientist who discovered the cure had a chance to save millions.",
+        "The painting which the museum bought had a story to tell.",
+        "She had a decision to make because her boss resigned.",
+        "He found a way to escape before the door closed.",
+        "The man I met introduced me to the woman who won the prize.",
+        "The book that she wrote inspired the student who solved the problem.",
+        "The scientist who discovered the cure had a chance to publish because the journal accepted his work.",
+        "The movie that we watched had a scene to remember because it moved everyone.",
+
+        # ccomp
+        "He says that you like to swim.",
+        "She believes that he is innocent because the evidence is clear.",
+        "He said that the book that John wrote was boring.",
+        "She believes that he has a chance to win.",
+        "He says that you like to swim and she likes to dance.",
+        "She believes that he is innocent and that the trial was unfair.",
+        "She knows that he believes that the earth is flat.",
+        "She believes that they found a cure to test.",
+        "She believes that he had a chance to win because he trained hard.",
+        "The professors and students believe that the exam was unfair.",
+        "The scientist who discovered the cure said that he had a chance to publish because the journal that she recommended accepted his work.",
+
+        # parataxis
+        "I know, I said it before.",
+        "She is smart, I believe.",
+        "She left early: she was tired.",
+        "The result was clear: they had failed.",
+        "He said goodbye; he never returned.",
+        "I know, I said it before when we met.",
+        "She left early: she was tired because the meeting had gone badly.",
+        "The result was clear: the man who led the project had failed.",
+        "I know, she believes that he is innocent because the evidence was clear.",
         "The answer was obvious: the student who studied every day passed because he never gave up.",
         "He understood the truth: the woman he loved had left because he never listened.",
 
-        # disguised parataxis con ";" + subordinate
-        "She worked hard; the results showed it because the numbers never lie.",
-        "He said goodbye; he never returned because the city that raised him had changed.",
-        "The door was open; someone had broken in before the guard who patrolled arrived.",
-
-        # parataxis + ccomp
-        "I know, she believes that he is innocent because the evidence was clear.",
-        "He admitted it; she thinks that the man who confessed was lying because he was scared.",
-
-        # parataxis + nominal conj
+        # nominal conj + parataxis/subordinate
         "The professors and students protested; the dean announced that the policy would change.",
-        "I know, the teachers and parents believe that the system failed because nobody acted.",
+        "The professors and students protested because the exam was unfair.",
+        "The doctors and nurses who treated him worked harder because the situation was critical.",
+        "The managers and employees said that the policy was wrong because it hurt everyone.",
+
+        # relcl annidate
+        "The book that the author who won the prize wrote inspired millions.",
+        "The cure that the scientist who worked alone discovered saved thousands.",
+        "The man who left because he was angry never returned.",
+        "The woman who looked happy danced when the music started.",
+
+        # complessi misti
+        "He came home and said that the woman who called was his sister.",
+        "She thinks that he left because he was angry.",
+        "She believes that he had a chance to win because he trained hard.",
+        "The door was open; someone had broken in before the guard who patrolled arrived.",
+        "The scientist who discovered the cure said that he is innocent and that the trial was unfair.",
+        "She knows that he believes that the woman who called was lying.",
     ]
 
     splitter = ClauseSplitter()

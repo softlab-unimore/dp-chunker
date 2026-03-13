@@ -3,6 +3,8 @@ from splitters.base_splitter import BaseSplitter
 
 class AdvclSplitter(BaseSplitter):
 
+    SUBORDINATING_ADVMOD = {"when", "where", "while", "whenever", "wherever", "before", "after", "once"}
+
     def split(self, doc, token):
         if not self.has_verb(token):
             return None
@@ -12,6 +14,7 @@ class AdvclSplitter(BaseSplitter):
         clause_tokens = [
             t for t in token.subtree
             if t.dep_ not in {"mark", "punct"}
+               and not (t.dep_ == "advmod" and t.text.lower() in self.SUBORDINATING_ADVMOD)
                and t.i not in nested_idxs
         ]
 
