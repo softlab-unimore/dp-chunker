@@ -67,25 +67,27 @@ class RelclSplitter(BaseSplitter):
                 and t.dep_ != "mark"
             ]
 
-        def make_result(clause_tokens, used_tokens):
+        def make_result(clause_tokens, used_tokens, preserve_order=False):
             ordered = self.deduplicate_ordered(clause_tokens)
-            text = self.build_clause_text(ordered)
+            if preserve_order:
+                text = " ".join(t.text for t in ordered)
+            else:
+                text = self.build_clause_text(ordered)
             return {"type": "relcl", "subordinate": text.strip(), "tokens": used_tokens}
 
         # -------------------------------------------------------
         # CASE 1: relative pronoun is SUBJECT (who/which subject)
         # -------------------------------------------------------
         if rel_pron is not None and not rel_subj:
-            # Include npadvmod tokens that spaCy attaches to the main verb
-            # but logically belong to the relcl (positioned between relcl verb and main verb)
             main_verb = noun.head if noun.head.pos_ in {"VERB", "AUX"} else None
             npadvmod_tokens = []
             if main_verb is not None:
                 npadvmod_tokens = [
                     t for t in main_verb.children
-                    if t.dep_ == "npadvmod" and t.i > token.i and t.i < main_verb.i
+                    if t.dep_ == "npadvmod"
+                    and t.i > token.i
+                    and t.i < main_verb.i
                 ]
-                # Include their subtrees (e.g. "every" det of "day")
                 npadvmod_full = []
                 for t in npadvmod_tokens:
                     npadvmod_full.extend(t.subtree)
@@ -136,17 +138,19 @@ class RelclSplitter(BaseSplitter):
             return make_result(clause_tokens, used)
 
         # -------------------------------------------------------
-        # CASE 3: zero relative (no relative pronoun)
+        # CASE 3: zero relative (no relative pronoun) — preserve SVO order
         # -------------------------------------------------------
         else:
             zero_subj = [t for t in subtree_tokens if t.dep_ in {"nsubj", "nsubjpass"}]
 
             if not zero_subj:
                 clause_tokens = noun_np + other() + [token]
+                return make_result(clause_tokens,
+                                   sorted([t for t in subtree_tokens if t.i > noun.i], key=lambda t: t.i))
             else:
-                clause_tokens = zero_subj + [token] + other() + noun_np
+                # SVO: soggetto + verbo + noun_np come oggetto + altri modificatori
+                clause_tokens = zero_subj + [token] + noun_np + other()
                 for subj in zero_subj:
                     self.find_name_modifiers(clause_tokens, subj)
-
-            used = sorted([t for t in subtree_tokens if t.i > noun.i], key=lambda t: t.i)
-            return make_result(clause_tokens, used)
+                used = sorted([t for t in subtree_tokens if t.i > noun.i], key=lambda t: t.i)
+                return make_result(clause_tokens, used, preserve_order=True)
