@@ -194,12 +194,16 @@ class ClauseSplitter(BaseSplitter):
 
             adj_mods = [m for m in mods if m.pos_ == "ADJ"]
             adj_mod_idxs = {m.i for m in adj_mods}
+            head_det = [ch for ch in head_noun.children if ch.dep_ == "det"]
             for noun in nouns:
                 noun_mods = sorted(
                     [ch for ch in noun.children
                      if ch.dep_ in {"det", "amod"} and ch.i not in adj_mod_idxs],
                     key=lambda t: t.i
                 )
+                # Eredita det dal head_noun se il noun non ne ha uno proprio
+                if not any(m.dep_ == "det" for m in noun_mods):
+                    noun_mods = sorted(head_det + noun_mods, key=lambda t: t.i)
                 noun_text = (" ".join(t.text for t in noun_mods) + " " + noun.text) if noun_mods else noun.text
 
                 if adj_mods:
@@ -212,23 +216,38 @@ class ClauseSplitter(BaseSplitter):
                 for noun in nouns:
                     result = self.relcl_splitter.split(doc, relcl)
                     if result:
-                        # Ricostruisci la clausola sostituendo il noun_np della relcl
-                        # con il noun corretto (+ adj_mod se presente)
-                        # Usa i token della relcl escludendo il noun_np originale
+                        # Ricalcola noun_text per questo noun specifico
+                        noun_mods_rel = sorted(
+                            [ch for ch in noun.children
+                             if ch.dep_ in {"det", "amod"} and ch.i not in adj_mod_idxs],
+                            key=lambda t: t.i
+                        )
+                        if not any(m.dep_ == "det" for m in noun_mods_rel):
+                            noun_mods_rel = sorted(head_det + noun_mods_rel, key=lambda t: t.i)
+                        noun_text = (" ".join(t.text for t in noun_mods_rel) + " " + noun.text) if noun_mods_rel else noun.text
+
                         relcl_head_np_idxs = {relcl.head.i} | {
                             ch.i for ch in relcl.head.children
                             if ch.dep_ in {"det", "amod", "nummod", "poss", "compound"}
                         }
+                        # Escludi anche pronomi relativi (who/that/which/whom)
+                        rel_pron_idxs = {
+                            ch.i for ch in relcl.children
+                            if ch.text.lower() in {"who", "that", "which", "whom"}
+                        }
                         relcl_body = " ".join(
                             t.text for t in sorted(result["tokens"], key=lambda t: t.i)
-                            if t.i not in relcl_head_np_idxs and t.dep_ not in {"punct"}
+                            if t.i not in relcl_head_np_idxs
+                            and t.i not in rel_pron_idxs
+                            and t.dep_ not in {"punct"}
                         )
+                        # Usa noun_text (con det ereditato) invece di noun.text
                         if adj_mods:
                             for mod in adj_mods:
-                                clause = f"{mod.text} {noun.text} {relcl_body}"
+                                clause = f"{mod.text} {noun_text} {relcl_body}"
                                 splits.append({"type": "relcl_propagated", "subordinate": clause})
                         else:
-                            clause = f"{noun.text} {relcl_body}"
+                            clause = f"{noun_text} {relcl_body}"
                             splits.append({"type": "relcl_propagated", "subordinate": clause})
 
             for dep in ("ccomp", "advcl", "parataxis"):
