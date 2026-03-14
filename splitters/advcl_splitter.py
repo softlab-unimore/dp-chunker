@@ -34,5 +34,11 @@ class AdvclSplitter(BaseSplitter):
                             clause_tokens = sorted(implicit_subj, key=lambda t: t.i) + clause_tokens
                     break
 
+        subordinating_tokens = [
+            t for t in token.subtree
+            if t.dep_ == "advmod" and t.text.lower() in self.SUBORDINATING_ADVMOD
+        ]
+
         clause_tokens = sorted(clause_tokens, key=lambda t: t.i)
-        return {"type": "advcl", "subordinate": self.build_clause_text(clause_tokens), "tokens": clause_tokens}
+        used_tokens = sorted(set(clause_tokens + subordinating_tokens), key=lambda t: t.i)
+        return {"type": "advcl", "subordinate": self.build_clause_text(clause_tokens), "tokens": used_tokens}

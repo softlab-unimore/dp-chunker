@@ -46,12 +46,28 @@ class ClauseSplitter(BaseSplitter):
     # ------------------------------------------------------------------
     # RESOLVE ACTUAL DEP (redirections)
     # ------------------------------------------------------------------
+
+    def _is_inside_relcl(self, token):
+        """Returns True if token is nested inside a relcl subtree."""
+        t = token.head
+        while t != t.head:  # walk up to root
+            if t.dep_ == "relcl":
+                return True
+            t = t.head
+        return False
+
     def resolve_dep(self, token, doc=None):
         dep = token.dep_
 
         if dep == "relcl":
             if any(ch.dep_ == "aux" and ch.text.lower() == "to" for ch in token.children):
                 return "acl"
+
+        # Sopprime acl il cui head è un dobj annidato dentro una relcl:
+        # spaCy a volte attacca il verbo principale come acl di un dobj interno,
+        # generando clausole errate come "the exam asked for help".
+        if dep == "acl" and token.head.dep_ == "dobj" and self._is_inside_relcl(token.head):
+            return "SKIP"
 
         if dep == "conj":
             root = token
@@ -106,19 +122,35 @@ class ClauseSplitter(BaseSplitter):
         results = []
         visited = set()
 
+        # Raccoglie i conj ricorsivamente (es. Marx→Engels→Weber)
+        def collect_conj_nouns(t):
+            result = []
+            for ch in t.children:
+                if ch.dep_ == "conj" and ch.pos_ in {"NOUN", "PROPN"}:
+                    result.append(ch)
+                    result.extend(collect_conj_nouns(ch))
+            return result
+
+        # Raccoglie amod coordinati ricorsivamente (es. American→British)
+        def collect_conj_adjs(t):
+            result = []
+            for ch in t.children:
+                if ch.dep_ == "conj" and ch.pos_ == "ADJ":
+                    result.append(ch)
+                    result.extend(collect_conj_adjs(ch))
+            return result
+
         for token in doc:
+            if token.i in visited:
+                continue
+
+            # CASO 1: noun con conj nominali (es. "professors and students")
             if (token.dep_ not in {"conj", "punct", "cc"}
                     and token.pos_ in {"NOUN", "PROPN"}
                     and any(ch.dep_ == "conj" and ch.pos_ in {"NOUN", "PROPN"} for ch in token.children)):
 
-                if token.i in visited:
-                    continue
                 visited.add(token.i)
-
-                nouns = [token] + [
-                    ch for ch in token.children
-                    if ch.dep_ == "conj" and ch.pos_ in {"NOUN", "PROPN"}
-                ]
+                nouns = [token] + collect_conj_nouns(token)
                 for n in nouns:
                     visited.add(n.i)
 
@@ -129,12 +161,40 @@ class ClauseSplitter(BaseSplitter):
                         shared_mods += [c for c in ch.children if c.dep_ == "conj"]
 
                 relcl_list = [ch for ch in token.children if ch.dep_ == "relcl"]
-
                 results.append({
                     "nouns": nouns,
                     "mods": shared_mods,
                     "relcl": relcl_list,
                     "head_token": token,
+                })
+
+            # CASO 2: noun con amod coordinati (es. "American and British professors")
+            elif (token.dep_ not in {"conj", "punct", "cc"}
+                    and token.pos_ in {"NOUN", "PROPN"}
+                    and not any(ch.dep_ == "conj" and ch.pos_ in {"NOUN", "PROPN"} for ch in token.children)):
+
+                coord_amods = []
+                for ch in token.children:
+                    if ch.dep_ == "amod" and ch.pos_ == "ADJ":
+                        conj_adjs = collect_conj_adjs(ch)
+                        if conj_adjs:
+                            coord_amods = [ch] + conj_adjs
+                            break
+
+                if not coord_amods:
+                    continue
+
+                visited.add(token.i)
+                for adj in coord_amods:
+                    visited.add(adj.i)
+
+                relcl_list = [ch for ch in token.children if ch.dep_ == "relcl"]
+                results.append({
+                    "nouns": [token],          # un solo noun ripetuto per ogni adj
+                    "mods": [],
+                    "relcl": relcl_list,
+                    "head_token": token,
+                    "coord_amods": coord_amods, # amod coordinati da espandere
                 })
 
         return results
@@ -155,12 +215,53 @@ class ClauseSplitter(BaseSplitter):
             nouns      = group["nouns"]
             mods       = group["mods"]
             relcl_list = group["relcl"]
+            coord_amods = group.get("coord_amods")  # solo per CASO 2
+
+            # CASO 2: amod coordinati su un solo noun (es. "American and British professors")
+            if coord_amods:
+                noun = nouns[0]
+                used_tokens.add(noun.i)
+                for adj in coord_amods:
+                    used_tokens.add(adj.i)
+                    # segna anche i cc tra gli amod
+                    for ch in adj.children:
+                        if ch.dep_ == "cc":
+                            used_tokens.add(ch.i)
+                # segna cc figli del primo amod
+                for ch in coord_amods[0].children:
+                    if ch.dep_ == "cc":
+                        used_tokens.add(ch.i)
+                for relcl in relcl_list:
+                    used_tokens.update(t.i for t in relcl.subtree)
+
+                # Costruisce predicate_tokens escludendo noun, amod e relcl
+                amod_idxs = {adj.i for adj in coord_amods}
+                amod_idxs.update(ch.i for adj in coord_amods for ch in adj.children if ch.dep_ == "cc")
+                excluded = {noun.i} | amod_idxs | {t.i for relcl in relcl_list for t in relcl.subtree}
+                head_noun = group["head_token"]
+                pred_root = head_noun.head if head_noun.head.pos_ in {"VERB", "AUX"} else root
+                predicate_tokens = sorted(
+                    [t for t in pred_root.subtree
+                     if t.i not in excluded and t.dep_ not in {"punct", "cc"}],
+                    key=lambda t: t.i
+                )
+                used_tokens.update(t.i for t in predicate_tokens)
+
+                for adj in coord_amods:
+                    all_tokens = sorted([adj, noun] + predicate_tokens, key=lambda t: t.i)
+                    splits.append({"type": "nominal_conj", "subordinate": self.build_clause_text(all_tokens)})
+
+                for dep in ("ccomp", "advcl", "parataxis"):
+                    for ch in pred_root.children:
+                        if ch.dep_ == dep and ch.i not in used_tokens:
+                            self.dispatch(doc, ch, splits, used_tokens, recurse=(dep != "advcl"))
+                continue
 
             for noun in nouns:
                 used_tokens.add(noun.i)
-                # Segna anche i compound (es. "Travolta" in "John Travolta")
+                # Segna compound e cc di tutti i noun (inclusi quelli intermedi della catena)
                 for ch in noun.children:
-                    if ch.dep_ == "compound":
+                    if ch.dep_ in {"compound", "cc"}:
                         used_tokens.add(ch.i)
             for mod in mods:
                 used_tokens.add(mod.i)
@@ -226,15 +327,22 @@ class ClauseSplitter(BaseSplitter):
                             if ch.dep_ in {"compound", "det", "amod"}:
                                 other_direct_mods.add(ch.i)
 
+                # Indici di tutti i token appartenenti alle relcl del gruppo:
+                # vengono gestiti separatamente e non devono mai finire in noun_tokens
+                relcl_idxs = set()
+                for relcl in relcl_list:
+                    relcl_idxs.update(t.i for t in relcl.subtree)
+
                 # Token del sottoalbero degli altri noun nel range posizionale di questo noun
                 # vanno inclusi (es. "of the Rings" per "Lord"), ma solo se non sono
                 # compound/det/amod diretti di un altro noun (es. "Joe" non va a "Obama")
+                # e non appartengono a una relcl (es. "who attended" non va a "students")
                 other_subtree_in_range = set()
                 other_subtree_out_range = set()
                 for other_noun in nouns:
                     if other_noun.i != noun.i:
                         for t in other_noun.subtree:
-                            if t.i in other_direct_mods:
+                            if t.i in other_direct_mods or t.i in relcl_idxs or t.dep_ == "cc":
                                 other_subtree_out_range.add(t.i)
                             elif pos_start <= t.i < pos_end:
                                 other_subtree_in_range.add(t.i)
@@ -328,9 +436,27 @@ class ClauseSplitter(BaseSplitter):
 
         # ---- Frase principale ---------------------------------------
         if not nominal_groups:
+            # I noun head di relcl top-level (attaccate direttamente a un token
+            # che è figlio della ROOT) vengono marcati in used_tokens dalla relcl,
+            # ma devono comunque apparire nella clausola principale.
+            # Includiamo solo quelli direttamente rilevanti per la main clause,
+            # escludendo noun che sono nsubj interni alla relcl stessa.
+            relcl_heads = set()
+            for token in doc:
+                if token.dep_ == "relcl":
+                    head = token.head
+                    # Solo se il head è direttamente figlio della ROOT (nsubj, dobj, ecc.)
+                    # e non è esso stesso dentro un'altra relcl
+                    if head.head == root or head == root:
+                        relcl_heads.add(head.i)
+                        for ch in head.children:
+                            if ch.dep_ in {"det", "amod", "compound"}:
+                                relcl_heads.add(ch.i)
+
             main_tokens = [
                 t for t in doc
-                if t.i not in used_tokens and t.dep_ not in {"punct", "mark", "cc"}
+                if (t.i not in used_tokens or t.i in relcl_heads)
+                and t.dep_ not in {"punct", "mark", "cc"}
             ]
             if main_tokens:
                 splits.insert(0, {"type": "main", "subordinate": self.build_clause_text(main_tokens)})
