@@ -158,6 +158,10 @@ class ClauseSplitter(BaseSplitter):
 
             for noun in nouns:
                 used_tokens.add(noun.i)
+                # Segna anche i compound (es. "Travolta" in "John Travolta")
+                for ch in noun.children:
+                    if ch.dep_ == "compound":
+                        used_tokens.add(ch.i)
             for mod in mods:
                 used_tokens.add(mod.i)
             for relcl in relcl_list:
@@ -166,7 +170,7 @@ class ClauseSplitter(BaseSplitter):
             nominal_idxs = set()
             for noun in nouns:
                 nominal_idxs.add(noun.i)
-                nominal_idxs.update(ch.i for ch in noun.children if ch.dep_ == "cc")
+                nominal_idxs.update(ch.i for ch in noun.children if ch.dep_ in {"cc", "compound"})
             for mod in mods:
                 nominal_idxs.add(mod.i)
                 nominal_idxs.update(ch.i for ch in mod.children if ch.dep_ == "cc")
@@ -198,19 +202,22 @@ class ClauseSplitter(BaseSplitter):
             for noun in nouns:
                 noun_mods = sorted(
                     [ch for ch in noun.children
-                     if ch.dep_ in {"det", "amod"} and ch.i not in adj_mod_idxs],
+                     if ch.dep_ in {"det", "amod", "compound"} and ch.i not in adj_mod_idxs],
                     key=lambda t: t.i
                 )
                 # Eredita det dal head_noun se il noun non ne ha uno proprio
                 if not any(m.dep_ == "det" for m in noun_mods):
                     noun_mods = sorted(head_det + noun_mods, key=lambda t: t.i)
-                noun_text = (" ".join(t.text for t in noun_mods) + " " + noun.text) if noun_mods else noun.text
 
+                # Ricostruisce rispettando l'ordine posizionale originale
+                noun_tokens = sorted(noun_mods + [noun], key=lambda t: t.i)
                 if adj_mods:
                     for mod in adj_mods:
-                        splits.append({"type": "nominal_conj", "subordinate": f"{mod.text} {noun_text} {predicate_text}"})
+                        all_tokens = sorted(predicate_tokens + noun_tokens + [mod], key=lambda t: t.i)
+                        splits.append({"type": "nominal_conj", "subordinate": self.build_clause_text(all_tokens)})
                 else:
-                    splits.append({"type": "nominal_conj", "subordinate": f"{noun_text} {predicate_text}"})
+                    all_tokens = sorted(predicate_tokens + noun_tokens, key=lambda t: t.i)
+                    splits.append({"type": "nominal_conj", "subordinate": self.build_clause_text(all_tokens)})
 
             for relcl in relcl_list:
                 for noun in nouns:
@@ -219,7 +226,7 @@ class ClauseSplitter(BaseSplitter):
                         # Ricalcola noun_text per questo noun specifico
                         noun_mods_rel = sorted(
                             [ch for ch in noun.children
-                             if ch.dep_ in {"det", "amod"} and ch.i not in adj_mod_idxs],
+                             if ch.dep_ in {"det", "amod", "compound"} and ch.i not in adj_mod_idxs],
                             key=lambda t: t.i
                         )
                         if not any(m.dep_ == "det" for m in noun_mods_rel):
