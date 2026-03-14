@@ -209,14 +209,53 @@ class ClauseSplitter(BaseSplitter):
                 if not any(m.dep_ == "det" for m in noun_mods):
                     noun_mods = sorted(head_det + noun_mods, key=lambda t: t.i)
 
-                # Ricostruisce rispettando l'ordine posizionale originale
-                noun_tokens = sorted(noun_mods + [noun], key=lambda t: t.i)
+                # Determina il range posizionale "di proprietà" di questo noun:
+                # da noun.i fino al noun successivo del gruppo (escluso), oppure fine frase
+                noun_positions = sorted(n.i for n in nouns)
+                noun_pos_idx = noun_positions.index(noun.i)
+                pos_start = noun.i
+                pos_end = noun_positions[noun_pos_idx + 1] if noun_pos_idx + 1 < len(noun_positions) else len(doc)
+
+                # Indici dei compound/det/amod diretti di altri noun: appartengono
+                # sempre al loro noun, mai al territorio di questo
+                other_direct_mods = set()
+                for other_noun in nouns:
+                    if other_noun.i != noun.i:
+                        other_direct_mods.add(other_noun.i)
+                        for ch in other_noun.children:
+                            if ch.dep_ in {"compound", "det", "amod"}:
+                                other_direct_mods.add(ch.i)
+
+                # Token del sottoalbero degli altri noun nel range posizionale di questo noun
+                # vanno inclusi (es. "of the Rings" per "Lord"), ma solo se non sono
+                # compound/det/amod diretti di un altro noun (es. "Joe" non va a "Obama")
+                other_subtree_in_range = set()
+                other_subtree_out_range = set()
+                for other_noun in nouns:
+                    if other_noun.i != noun.i:
+                        for t in other_noun.subtree:
+                            if t.i in other_direct_mods:
+                                other_subtree_out_range.add(t.i)
+                            elif pos_start <= t.i < pos_end:
+                                other_subtree_in_range.add(t.i)
+                            else:
+                                other_subtree_out_range.add(t.i)
+
+                # noun_tokens = proprio sottoalbero (compound, det, amod) +
+                #               token degli altri noun nel proprio range posizionale
+                noun_tokens = sorted(
+                    set(noun_mods + [noun]) | {doc[i] for i in other_subtree_in_range},
+                    key=lambda t: t.i
+                )
+                # Dal predicato escludiamo solo i token fuori dal nostro range posizionale
+                filtered_pred = [t for t in predicate_tokens if t.i not in other_subtree_out_range and t.i not in other_subtree_in_range]
+
                 if adj_mods:
                     for mod in adj_mods:
-                        all_tokens = sorted(predicate_tokens + noun_tokens + [mod], key=lambda t: t.i)
+                        all_tokens = sorted(filtered_pred + noun_tokens + [mod], key=lambda t: t.i)
                         splits.append({"type": "nominal_conj", "subordinate": self.build_clause_text(all_tokens)})
                 else:
-                    all_tokens = sorted(predicate_tokens + noun_tokens, key=lambda t: t.i)
+                    all_tokens = sorted(filtered_pred + noun_tokens, key=lambda t: t.i)
                     splits.append({"type": "nominal_conj", "subordinate": self.build_clause_text(all_tokens)})
 
             for relcl in relcl_list:
