@@ -2,6 +2,9 @@ from splitters.clause_splitter import ClauseSplitter
 
 if __name__ == "__main__":
     sentences = [
+        # "She left early because she felt sick."
+        # "The English professors and students protested."
+        "Young and experienced doctors and nurses worked hard."
 
         # # advcl
         # "She left early because she felt sick.",
@@ -71,24 +74,24 @@ if __name__ == "__main__":
         # "He met John Travolta and Bill Murray.",
         # "She interviewed Barack Obama and Joe Biden.",
         # "He read Harry Potter and Lord of the Rings.",
-        "She cited Karl Marx and Friedrich Engels and Max Weber.",
-
-        # amod coordinati
-        "American and British professors attended.",
-        "Young and experienced doctors treated the patients.",
-
-        # coordinate normali (no split atteso)
-        "She bought apples and oranges.",
-        "He met John and Mary.",
-
-        # misti
-        "The scientist who discovered the cure said that he succeeded because he worked hard.",
-        "The man who had a plan to escape left before the guards arrived.",
-        "She told me that the doctor who treated him left because the hospital closed.",
-        "The doctors and nurses who treated him worked harder because the situation was critical.",
-        "The managers and employees said that the policy was wrong because it hurt everyone.",
-        "The book that the author who won the prize wrote inspired millions.",
-        "The scientist who discovered the cure said that he had a chance to publish because the journal that she recommended accepted his work.",
+        # "She cited Karl Marx and Friedrich Engels and Max Weber.",
+        #
+        # # amod coordinati
+        # "American and British professors attended.",
+        # "Young and experienced doctors treated the patients.",
+        #
+        # # coordinate normali (no split atteso)
+        # "She bought apples and oranges.",
+        # "He met John and Mary.",
+        #
+        # # misti
+        # "The scientist who discovered the cure said that he succeeded because he worked hard.",
+        # "The man who had a plan to escape left before the guards arrived.",
+        # "She told me that the doctor who treated him left because the hospital closed.",
+        # "The doctors and nurses who treated him worked harder because the situation was critical.",
+        # "The managers and employees said that the policy was wrong because it hurt everyone.",
+        # "The book that the author who won the prize wrote inspired millions.",
+        # "The scientist who discovered the cure said that he had a chance to publish because the journal that she recommended accepted his work.",
     ]
 
     splitter = ClauseSplitter()

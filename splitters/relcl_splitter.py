@@ -1,19 +1,3 @@
-"""
-relcl_splitter.py
------------------
-Handles relative clause modifiers (dep=relcl).
-
-Three structural cases are distinguished based on how the relative
-pronoun and the clause subject are expressed:
-
-- **Case 1** – relative pronoun as subject (``who``/``which`` subject):
-  *"The woman* ***who called*** *was his sister."*
-- **Case 2** – explicit subject + explicit relative pronoun (object gap):
-  *"The book* ***that John wrote*** *became famous."*
-- **Case 3** – zero relative (no overt relative pronoun):
-  *"The man* ***I met*** *was a doctor."*
-"""
-
 from splitters.base_splitter import BaseSplitter
 
 
