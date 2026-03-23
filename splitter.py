@@ -3,8 +3,8 @@ from splitters.clause_splitter import ClauseSplitter
 if __name__ == "__main__":
     sentences = [
         # "She left early because she felt sick."
-        # "The English professors and students protested."
-        "Young and experienced doctors and nurses worked hard."
+        "The English professors and students protested.",
+        "Young, beautiful and nice doctors and nurses worked hard.",
 
         # # advcl
         # "She left early because she felt sick.",
@@ -62,13 +62,13 @@ if __name__ == "__main__":
         # "The answer was obvious: the student who studied every day passed.",
         #
         # # nominal conj
-        # "The professors and students protested.",
-        # "The doctors and nurses worked hard.",
-        # "The professors and students protested because the exam was unfair.",
-        # "The teachers and students believe that the system needs reform.",
-        # "The professors and students who attended protested.",
-        # "The professors and students who attended said that the lecture was inspiring.",
-        # "The professors and students protested; the dean announced that the policy would change.",
+        "The professors and students protested.",
+        "The doctors and nurses worked hard.",
+        "The professors and students protested because the exam was unfair.",
+        "The teachers and students believe that the system needs reform.",
+        "The professors and students who attended protested.",
+        "The professors and students who attended said that the lecture was inspiring.",
+        "The professors and students protested; the dean announced that the policy would change.",
         #
         # # nominal conj con compound / named entity
         # "He met John Travolta and Bill Murray.",
@@ -77,8 +77,8 @@ if __name__ == "__main__":
         # "She cited Karl Marx and Friedrich Engels and Max Weber.",
         #
         # # amod coordinati
-        # "American and British professors attended.",
-        # "Young and experienced doctors treated the patients.",
+        "American and British professors attended.",
+        "Young and experienced doctors treated the patients.",
         #
         # # coordinate normali (no split atteso)
         # "She bought apples and oranges.",

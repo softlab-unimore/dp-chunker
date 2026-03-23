@@ -91,17 +91,13 @@ class ClauseSplitter(BaseSplitter):
         """
         Detect and return all nominal coordination groups in *doc*.
 
-        Two kinds of groups are returned:
+        Three kinds of groups are returned:
 
         - **Noun conj groups**: a head noun coordinated with one or more
           nouns via ``conj`` arcs.  The group carries the shared predicate,
           any shared modifiers, and any relative clauses attached to the head.
-        - **Adj conj groups** (``coord_amods`` key present): a single noun
-          modified by two or more adjectives coordinated via ``conj``.
-
         Returns:
-            A list of group dicts (see ``_make_noun_conj_group`` and
-            ``_make_adj_conj_group`` for the dict structure).
+            A list of group dicts (see ``_make_noun_conj_group``).
         """
         results = []
         visited: set[int] = set()
@@ -121,10 +117,6 @@ class ClauseSplitter(BaseSplitter):
             if has_noun_conj:
                 group = self._make_noun_conj_group(token, visited)
                 results.append(group)
-            else:
-                group = self._make_adj_conj_group(token, visited)
-                if group:
-                    results.append(group)
 
         return results
 
@@ -135,6 +127,9 @@ class ClauseSplitter(BaseSplitter):
             visited.add(n.i)
 
         shared_mods = self._collect_shared_mods(token)
+        floating = self._collect_floating_adjs(token, {m.i for m in shared_mods})
+        shared_mods = sorted(shared_mods + floating, key=lambda t: t.i)
+
         relcl_list = [ch for ch in token.children if ch.dep_ == "relcl"]
 
         return {
@@ -144,34 +139,28 @@ class ClauseSplitter(BaseSplitter):
             "head_token": token,
         }
 
-    def _make_adj_conj_group(self, token, visited: set):
+    def _collect_floating_adjs(self, token, exclude_idxs: set) -> list:
         """
-        Build a coordinated-adjective group for a noun with multiple conj
-        adjective modifiers, or return None if no such group exists.
+        Return ADJ tokens that spaCy attached to the predicate head
+        (as nsubj/amod) instead of to *token* as amod, but that positionally
+        precede *token* and logically modify it.
         """
-        coord_amods = []
-        for ch in token.children:
-            if ch.dep_ == "amod" and ch.pos_ == "ADJ":
-                conj_adjs = self._collect_conj_adjs(ch)
-                if conj_adjs:
-                    coord_amods = [ch] + conj_adjs
-                    break
+        pred_head = token.head if token.head.pos_ in {"VERB", "AUX"} else None
+        if pred_head is None:
+            return []
 
-        if not coord_amods:
-            return None
-
-        visited.add(token.i)
-        for adj in coord_amods:
-            visited.add(adj.i)
-
-        relcl_list = [ch for ch in token.children if ch.dep_ == "relcl"]
-        return {
-            "nouns": [token],
-            "mods": [],
-            "relcl": relcl_list,
-            "head_token": token,
-            "coord_amods": coord_amods,
-        }
+        result = []
+        for ch in pred_head.children:
+            if (
+                ch.dep_ in {"nsubj", "nsubjpass", "amod"}
+                and ch.pos_ == "ADJ"
+                and ch.i < token.i
+                and ch.i not in exclude_idxs
+            ):
+                result.append(ch)
+                # Also grab conj siblings of this floating adj
+                result.extend(self._collect_conj_adjs(ch))
+        return sorted(result, key=lambda t: t.i)
 
     def _collect_conj_nouns(self, token) -> list:
         """Recursively collect NOUN/PROPN tokens chained via conj arcs."""
@@ -203,50 +192,7 @@ class ClauseSplitter(BaseSplitter):
     def _process_nominal_groups(self, doc, root, nominal_groups, splits, used_tokens):
         """Iterate over nominal groups and dispatch the appropriate handler."""
         for group in nominal_groups:
-            if group.get("coord_amods"):
-                self._handle_adj_conj_group(doc, root, group, splits, used_tokens)
-            else:
-                self._handle_noun_conj_group(doc, root, group, splits, used_tokens)
-
-    def _handle_adj_conj_group(self, doc, root, group, splits, used_tokens):
-        """
-        Process a coordinated-adjective group.
-
-        Generates one clause per adjective:
-            <adj> <noun> <predicate>
-        """
-        noun = group["nouns"][0]
-        coord_amods = group["coord_amods"]
-        relcl_list = group["relcl"]
-
-        self._mark_adj_group_tokens(noun, coord_amods, relcl_list, used_tokens)
-
-        head_noun = group["head_token"]
-        pred_root = head_noun.head if head_noun.head.pos_ in {"VERB", "AUX"} else root
-
-        amod_idxs = {adj.i for adj in coord_amods}
-        amod_idxs.update(
-            ch.i for adj in coord_amods for ch in adj.children if ch.dep_ == "cc"
-        )
-        excluded = {noun.i} | amod_idxs | {t.i for r in relcl_list for t in r.subtree}
-
-        predicate_tokens = sorted(
-            [
-                t for t in pred_root.subtree
-                if t.i not in excluded and t.dep_ not in {"punct", "cc"}
-            ],
-            key=lambda t: t.i,
-        )
-        used_tokens.update(t.i for t in predicate_tokens)
-
-        for adj in coord_amods:
-            all_tokens = sorted([adj, noun] + predicate_tokens, key=lambda t: t.i)
-            splits.append({
-                "type": "nominal_conj",
-                "subordinate": self.build_clause_text(all_tokens),
-            })
-
-        self._dispatch_pred_root_subordinates(doc, pred_root, splits, used_tokens)
+            self._handle_noun_conj_group(doc, root, group, splits, used_tokens)
 
     def _handle_noun_conj_group(self, doc, root, group, splits, used_tokens):
         """
@@ -281,20 +227,6 @@ class ClauseSplitter(BaseSplitter):
 
         self._dispatch_pred_root_subordinates(doc, pred_root, splits, used_tokens)
         self._maybe_emit_root_clause(doc, root, pred_root, splits, used_tokens)
-
-    def _mark_adj_group_tokens(self, noun, coord_amods, relcl_list, used_tokens):
-        """Mark all tokens belonging to a coord-adj group as consumed."""
-        used_tokens.add(noun.i)
-        for adj in coord_amods:
-            used_tokens.add(adj.i)
-            for ch in adj.children:
-                if ch.dep_ == "cc":
-                    used_tokens.add(ch.i)
-        for ch in coord_amods[0].children:
-            if ch.dep_ == "cc":
-                used_tokens.add(ch.i)
-        for relcl in relcl_list:
-            used_tokens.update(t.i for t in relcl.subtree)
 
     def _mark_noun_group_tokens(self, nouns, mods, relcl_list, used_tokens):
         """Mark all tokens belonging to a noun-conj group as consumed."""
@@ -352,13 +284,11 @@ class ClauseSplitter(BaseSplitter):
         noun_tokens = sorted(noun_mods + [noun], key=lambda t: t.i)
         filtered_pred = self._filter_pred_for_noun(noun, nouns, predicate_tokens, relcl_list, doc)
 
-        if adj_mods:
-            for mod in adj_mods:
-                all_tokens = sorted(filtered_pred + noun_tokens + [mod], key=lambda t: t.i)
-                splits.append({"type": "nominal_conj", "subordinate": self.build_clause_text(all_tokens)})
-        else:
-            all_tokens = sorted(filtered_pred + noun_tokens, key=lambda t: t.i)
-            splits.append({"type": "nominal_conj", "subordinate": self.build_clause_text(all_tokens)})
+        all_tokens = sorted(
+            {t.i: t for t in filtered_pred + noun_tokens + adj_mods}.values(),
+            key=lambda t: t.i,
+        )
+        splits.append({"type": "nominal_conj", "subordinate": self.build_clause_text(all_tokens)})
 
         for relcl in relcl_list:
             self._emit_relcl_for_noun(noun, relcl, adj_mods, adj_mod_idxs, head_det, splits)
@@ -389,17 +319,11 @@ class ClauseSplitter(BaseSplitter):
             and t.dep_ != "punct"
         )
 
-        if adj_mods:
-            for mod in adj_mods:
-                splits.append({
-                    "type": "relcl_propagated",
-                    "subordinate": f"{mod.text} {noun_text} {relcl_body}",
-                })
-        else:
-            splits.append({
-                "type": "relcl_propagated",
-                "subordinate": f"{noun_text} {relcl_body}",
-            })
+        adj_prefix = " ".join(m.text for m in adj_mods) + " " if adj_mods else ""
+        splits.append({
+            "type": "relcl_propagated",
+            "subordinate": f"{adj_prefix}{noun_text} {relcl_body}",
+        })
 
     def _get_noun_mods(self, noun, adj_mod_idxs: set, head_det: list) -> list:
         """
