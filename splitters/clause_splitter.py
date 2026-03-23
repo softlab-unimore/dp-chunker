@@ -20,7 +20,18 @@ class ClauseSplitter(BaseSplitter):
         # ["She left", "she was tired"]
     """
 
-    def __init__(self, model: str = "en_core_web_lg"):
+    # All clause types that can be individually enabled/disabled.
+    ALL_SPLIT_TYPES = {"advcl", "acl", "relcl", "conj", "ccomp", "parataxis", "nominal_conj"}
+
+    def __init__(self, model: str = "en_core_web_lg", enabled_splits: set | None = None):
+        """
+        Args:
+            model:          spaCy model name.
+            enabled_splits: Set of clause types to activate.  Accepted values:
+                            ``advcl``, ``acl``, ``relcl``, ``conj``, ``ccomp``,
+                            ``parataxis``, ``nominal_conj``.
+                            Pass ``None`` (default) to enable all types.
+        """
         self.nlp = spacy.load(model)
         self.advcl_splitter     = AdvclSplitter(self.nlp)
         self.acl_splitter       = AclSplitter(self.nlp)
@@ -29,7 +40,11 @@ class ClauseSplitter(BaseSplitter):
         self.ccomp_splitter     = CcompSplitter(self.nlp)
         self.parataxis_splitter = ParataxisSplitter(self.nlp)
 
-        self.splitters = {
+        self.enabled_splits: set = (
+            self.ALL_SPLIT_TYPES if enabled_splits is None else set(enabled_splits)
+        )
+
+        all_splitters = {
             "advcl":     lambda doc, token: self.advcl_splitter.split(doc, token),
             "acl":       lambda doc, token: self.acl_splitter.split(doc, token),
             "relcl":     lambda doc, token: self.relcl_splitter.split(doc, token),
@@ -37,6 +52,13 @@ class ClauseSplitter(BaseSplitter):
             "ccomp":     lambda doc, token: self.ccomp_splitter.split(doc, token),
             "parataxis": lambda doc, token: self.parataxis_splitter.split(doc, token),
             "pobj":      self._split_pobj_verb,
+        }
+        # Keep only the dep-label splitters that are enabled.
+        # "pobj" is a virtual label that proxies "acl", so it follows "acl".
+        self.splitters = {
+            dep: fn for dep, fn in all_splitters.items()
+            if dep == "pobj" and "acl" in self.enabled_splits
+            or dep != "pobj" and dep in self.enabled_splits
         }
 
     def _split_pobj_verb(self, doc, token):
@@ -78,7 +100,11 @@ class ClauseSplitter(BaseSplitter):
         used_tokens: set[int] = set()
         root = next(t for t in doc if t.dep_ == "ROOT")
 
-        nominal_groups = self.expand_nominal_conj(doc)
+        nominal_groups = (
+            self.expand_nominal_conj(doc)
+            if "nominal_conj" in self.enabled_splits
+            else []
+        )
 
         self._process_nominal_groups(doc, root, nominal_groups, splits, used_tokens)
         self._process_subordinates(doc, splits, used_tokens)

@@ -16,7 +16,7 @@ class RelclSplitter(BaseSplitter):
             A result dict.
         """
         noun = token.head
-        noun_np = self.collect_noun_np(noun)
+        noun_np = self._collect_noun_np_with_conj(noun)
 
         nested_idxs = self.build_nested_idxs(token, {"advcl", "relcl", "acl", "ccomp"})
 
@@ -142,6 +142,39 @@ class RelclSplitter(BaseSplitter):
 
         used = sorted([t for t in subtree_tokens if t.i > noun.i], key=lambda t: t.i)
         return self._make_result(clause_tokens, used, preserve_order=True)
+
+    def _collect_noun_np_with_conj(self, noun) -> list:
+        """
+        Return the full NP for *noun* including any coordinated nouns
+        (conj siblings) and their own determiners/modifiers.
+
+        This ensures that a relcl attached to a head noun also mentions
+        its coordinated nouns when processed standalone (i.e. when
+        nominal_conj splitting is disabled).
+
+        E.g. "professors and students who attended" → noun_np includes
+        both "The professors" and "students".
+        """
+        np = self.collect_noun_np(noun)
+        np_idxs = {t.i for t in np}
+
+        for ch in noun.children:
+            if ch.dep_ == "conj" and ch.pos_ in {"NOUN", "PROPN"}:
+                for t in self.collect_noun_np(ch):
+                    if t.i not in np_idxs:
+                        np.append(t)
+                        np_idxs.add(t.i)
+                # Include the cc token (and/or) between nouns
+                for cc in ch.children:
+                    if cc.dep_ == "cc" and cc.i not in np_idxs:
+                        np.append(cc)
+                        np_idxs.add(cc.i)
+                # Also check the cc on the head noun side
+            if ch.dep_ == "cc" and ch.i not in np_idxs:
+                np.append(ch)
+                np_idxs.add(ch.i)
+
+        return sorted(np, key=lambda t: t.i)
 
     def _find_relative_pronoun(self, token, noun):
         """
