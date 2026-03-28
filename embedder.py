@@ -71,6 +71,7 @@ def main():
     train_embeddings = []
     print(f"Available GPU memory: {torch.cuda.get_device_properties(0).total_memory/1e9 - torch.cuda.memory_allocated(0)/1e9:.2f} GB")
     print("🔄 First pass: Collect embeddings for training the FAISS index...")
+
     reader = pd.read_csv(args.datapath, chunksize=args.batch_size)
     total_seen = 0
     for i, chunk in tqdm(enumerate(reader), desc="Training sample collection"):

@@ -1,5 +1,6 @@
 import argparse
 from splitters.clause_splitter import ClauseSplitter
+from functools import lru_cache
 
 ALL_SPLIT_TYPES = ClauseSplitter.ALL_SPLIT_TYPES
 
@@ -90,8 +91,6 @@ def build_arg_parser() -> argparse.ArgumentParser:
     group.add_argument("--disable", nargs="+", metavar="TYPE", choices=sorted(ALL_SPLIT_TYPES),
                        help="Enable all clause types except the listed ones.")
 
-    parser.add_argument("--sentence", nargs="+", metavar="SENTENCE", default=None,
-                        help="One or more sentences to split (overrides the built-in test set).")
     parser.add_argument("--model", default="en_core_web_lg", help="spaCy model to use (default: en_core_web_lg).")
 
     return parser
@@ -106,24 +105,21 @@ def resolve_enabled_splits(args) -> set:
     return set(ALL_SPLIT_TYPES)  # default: all
 
 
-def main():
+def splitter_fn(sentence: str) -> list:
+    @lru_cache(max_size=None)
+    def get_splitter(model: str, enabled_splits: frozenset):
+        return ClauseSplitter(model=model, enabled_splits=enabled_splits)
+
     parser = build_arg_parser()
     args = parser.parse_args()
 
     enabled = resolve_enabled_splits(args)
-    sentences = args.sentence if args.sentence else DEFAULT_SENTENCES
 
-    print(f"Enabled split types: {sorted(enabled)}\n")
+    #print(f"Enabled split types: {sorted(enabled)}\n")
 
-    splitter = ClauseSplitter(model=args.model, enabled_splits=enabled)
-
-    for s in sentences:
-        splits = splitter.split_sentence(s)
-        print(f"{s}")
-        for split in splits:
-            print(f"  - {split}")
-        print()
+    splitter = get_splitter(args.model, frozenset(enabled))
+    return splitter.split_sentence(sentence)
 
 
 if __name__ == "__main__":
-    main()
+    splitter_fn("sample sentence")
