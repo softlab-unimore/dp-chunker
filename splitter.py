@@ -82,44 +82,10 @@ DEFAULT_SENTENCES = [
 ]
 
 
-def build_arg_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Clause splitter — ablation mode.", formatter_class=argparse.RawDescriptionHelpFormatter,)
-
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("--enable", nargs="+", metavar="TYPE", choices=sorted(ALL_SPLIT_TYPES),
-                       help="Enable only the listed clause types. Choices: {sorted(ALL_SPLIT_TYPES)}")
-    group.add_argument("--disable", nargs="+", metavar="TYPE", choices=sorted(ALL_SPLIT_TYPES),
-                       help="Enable all clause types except the listed ones.")
-
-    parser.add_argument("--model", default="en_core_web_lg", help="spaCy model to use (default: en_core_web_lg).")
-
-    return parser
-
-
-def resolve_enabled_splits(args) -> set:
-    """Return the final set of enabled split types from parsed args."""
-    if args.enable:
-        return set(args.enable)
-    if args.disable:
-        return ALL_SPLIT_TYPES - set(args.disable)
-    return set(ALL_SPLIT_TYPES)  # default: all
-
-
-def splitter_fn(sentence: str) -> list:
-    @lru_cache(max_size=None)
+def splitter_fn(sentence: str, enabled_splits: list[str], model_name: str) -> list:
+    @lru_cache(maxsize=None)
     def get_splitter(model: str, enabled_splits: frozenset):
         return ClauseSplitter(model=model, enabled_splits=enabled_splits)
 
-    parser = build_arg_parser()
-    args = parser.parse_args()
-
-    enabled = resolve_enabled_splits(args)
-
-    #print(f"Enabled split types: {sorted(enabled)}\n")
-
-    splitter = get_splitter(args.model, frozenset(enabled))
+    splitter = get_splitter(model_name, frozenset(set(enabled_splits)))
     return splitter.split_sentence(sentence)
-
-
-if __name__ == "__main__":
-    splitter_fn("sample sentence")

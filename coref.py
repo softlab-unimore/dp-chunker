@@ -1,5 +1,9 @@
 import spacy
+from functools import lru_cache
 
+@lru_cache(maxsize=None)
+def get_nlp(model_name: str):
+    return spacy.load(model_name).add_pipe("coreferee")
 
 def resolve_coreferences(doc):
     resolved_tokens = []
@@ -18,6 +22,10 @@ def resolve_coreferences(doc):
 
     return " ".join(resolved_tokens)
 
+def parse_and_resolve_coreferences(text: str, model_name: str):
+    nlp = get_nlp(model_name)
+    doc = nlp(text)
+    return resolve_coreferences(doc)
 
 if __name__ == "__main__":
     data = [

@@ -3,6 +3,7 @@ import pandas as pd
 import argparse
 from tqdm import tqdm
 from splitter import splitter_fn
+from coref import parse_and_resolve_coreferences
 
 rule_mapping = {
     "all": ["advcl", "acl", "relcl", "conj", "ccomp", "parataxis", "nominal_conj"],
@@ -21,6 +22,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--input_csv', type=str, required=True, help='path to input csv')
     parser.add_argument('--output_csv', type=str, required=True, help='path to output csv')
+    parser.add_argument("--model", default="en_core_web_lg", help="spaCy model to use (default: en_core_web_lg).")
 
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--all", action="store_true")
@@ -37,13 +39,18 @@ if __name__ == "__main__":
 
     INPUT_CSV = args['input_csv']
     OUTPUT_CSV = args['output_csv']
+    MODEL_NAME = args['model']
     rules = None
     for k in args:
         if k in ["input_csv", "output_csv"]:
             continue
 
         if args[k]:
-            rules = rule_mapping[k]
+            key = k
+            if k == "no_coreference":
+                key = "all"
+
+            rules = rule_mapping[key]
             break
 
     if rules is None:
@@ -63,7 +70,10 @@ if __name__ == "__main__":
         for _, row in chunk.iterrows():
             paragraph = row["contents"]
             paragraph_id = row["id"]
-            props = splitter_fn(paragraph)
+            if not args["no_coreference"]:
+                paragraph = parse_and_resolve_coreferences(paragraph, MODEL_NAME)
+
+            props = splitter_fn(paragraph, rules, MODEL_NAME)
 
             for i, prop in enumerate(props):
                 prop_num = str(i)
