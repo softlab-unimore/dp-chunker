@@ -84,33 +84,41 @@ class ClauseSplitter(BaseSplitter):
         )
         return self.acl_splitter.split(doc, token, noun=noun)
 
-    def split_sentence(self, sentence: str) -> list[str]:
+    def split_sentence(self, sentences: str | list[str]) -> list[list[str]]:
         """
         Split *sentence* into its constituent clauses.
 
         Args:
-            sentence: A single English sentence.
+            sentences: A single English sentence.
 
         Returns:
             A list of clause strings.  The main clause, when present, is
             always the first element.
         """
-        doc = self.nlp(sentence)
-        splits: list[dict] = []
-        used_tokens: set[int] = set()
-        root = next(t for t in doc if t.dep_ == "ROOT")
+        if not isinstance(sentences, list):
+            sentences = [sentences]
 
-        nominal_groups = (
-            self.expand_nominal_conj(doc)
-            if "nominal_conj" in self.enabled_splits
-            else []
-        )
+        docs = self.nlp(sentences)
 
-        self._process_nominal_groups(doc, root, nominal_groups, splits, used_tokens)
-        self._process_subordinates(doc, splits, used_tokens)
-        self._process_main_clause(doc, root, nominal_groups, splits, used_tokens)
+        results = []
+        for doc in docs:
+            splits: list[dict] = []
+            used_tokens: set[int] = set()
+            root = next(t for t in doc if t.dep_ == "ROOT")
 
-        return [s["subordinate"] for s in splits]
+            nominal_groups = (
+                self.expand_nominal_conj(doc)
+                if "nominal_conj" in self.enabled_splits
+                else []
+            )
+
+            self._process_nominal_groups(doc, root, nominal_groups, splits, used_tokens)
+            self._process_subordinates(doc, splits, used_tokens)
+            self._process_main_clause(doc, root, nominal_groups, splits, used_tokens)
+
+            results.append([s["subordinate"] for s in splits])
+
+        return results
 
 
     def expand_nominal_conj(self, doc) -> list[dict]:

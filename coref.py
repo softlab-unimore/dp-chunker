@@ -24,10 +24,19 @@ def resolve_coreferences(doc):
 
     return " ".join(resolved_tokens)
 
-def parse_and_resolve_coreferences(text: str, model_name: str):
+def parse_and_resolve_coreferences(texts: str | list[str], model_name: str) -> list[str]:
     nlp = get_nlp(model_name)
-    doc = nlp(text)
-    return resolve_coreferences(doc)
+
+    if not isinstance(texts, list):
+        texts = [texts]
+
+    docs = nlp(texts)
+
+    results = []
+    for doc in docs:
+        results.append(resolve_coreferences(doc))
+
+    return results
 
 if __name__ == "__main__":
     data = [

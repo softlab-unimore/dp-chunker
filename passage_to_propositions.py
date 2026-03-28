@@ -128,26 +128,30 @@ def remove_first_line(text: str) -> str:
     return "\n".join(lines[1:]) if len(lines) > 1 else ""
 
 
-def process_rows(batch, use_coref, rules, model_name):
+def process_rows(batch, use_coref, rules, model_name, chunk_size=64):
     rows = []
 
-    for paragraph_id, paragraph in batch:
-        paragraph = remove_first_line(paragraph)
+    #for paragraph_id, paragraph in batch:
+    for i in range(0, len(batch), chunk_size):
+        data = batch[i:i+chunk_size]
+        paragraphs = [remove_first_line(paragraph) for _, paragraph in data]
+        paragraph_ids = [paragraph_id for paragraph_id, _ in data]
 
         if use_coref:
-            paragraph = parse_and_resolve_coreferences(paragraph, model_name)
+            paragraphs = parse_and_resolve_coreferences(paragraphs, model_name)
 
-        props = splitter_fn(paragraph, rules, model_name)
+        list_props = splitter_fn(paragraphs, rules, model_name)
 
-        for i, prop in enumerate(props):
-            if i > 9999:
-                raise ValueError("a passage leads to more than 9999 propositions. Reduce passage size")
+        for k, props in enumerate(list_props):
+            for j, prop in enumerate(props):
+                if j > 9999:
+                    raise ValueError("a passage leads to more than 9999 propositions. Reduce passage size")
 
-            rows.append({
-                "id": f"{paragraph_id}-{i:04d}",
-                "contents": prop,
-                "metadata": {}
-            })
+                rows.append({
+                    "id": f"{paragraph_ids[k]}-{j:04d}",
+                    "contents": prop,
+                    "metadata": {}
+                })
 
     return rows
 
@@ -198,7 +202,7 @@ if __name__ == "__main__":
         raise ValueError("rules cannot be None")
 
     use_coref = not args["no_coreference"]
-    chunk_size = 1000
+    chunk_size = 10000
 
     if os.path.exists(output_csv):
         raise ValueError(f"{output_csv} already exists. Cancel it before recomputing")

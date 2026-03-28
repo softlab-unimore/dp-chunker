@@ -86,6 +86,6 @@ DEFAULT_SENTENCES = [
 def get_splitter(model: str, enabled_splits: frozenset):
     return ClauseSplitter(model=model, enabled_splits=enabled_splits)
 
-def splitter_fn(sentence: str, enabled_splits: list[str], model_name: str) -> list:
+def splitter_fn(sentences: str | list[str], enabled_splits: list[str], model_name: str) -> list:
     splitter = get_splitter(model_name, frozenset(set(enabled_splits)))
-    return splitter.split_sentence(sentence)
+    return splitter.split_sentence(sentences)
