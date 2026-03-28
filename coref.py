@@ -3,7 +3,9 @@ from functools import lru_cache
 
 @lru_cache(maxsize=None)
 def get_nlp(model_name: str):
-    return spacy.load(model_name).add_pipe("coreferee")
+    nlp = spacy.load(model_name)
+    nlp.add_pipe("coreferee")
+    return nlp
 
 def resolve_coreferences(doc):
     resolved_tokens = []

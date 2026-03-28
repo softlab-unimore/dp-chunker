@@ -67,7 +67,7 @@ if __name__ == "__main__":
     for chunk in tqdm(pd.read_csv(INPUT_CSV, chunksize=CHUNK_SIZE), desc=f"Iterating over chunks of {CHUNK_SIZE} size"):
         rows = []
 
-        for _, row in chunk.iterrows():
+        for row in tqdm(chunk.itertuples()):
             paragraph = row["contents"]
             paragraph_id = row["id"]
             paragraph = "\n".join(paragraph.splitlines()[1:])
