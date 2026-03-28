@@ -98,7 +98,7 @@ class ClauseSplitter(BaseSplitter):
         if not isinstance(sentences, list):
             sentences = [sentences]
 
-        docs = self.nlp(sentences)
+        docs = list(self.nlp.pipe(sentences))
 
         results = []
         for doc in docs:

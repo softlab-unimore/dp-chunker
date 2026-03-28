@@ -30,7 +30,7 @@ def parse_and_resolve_coreferences(texts: str | list[str], model_name: str) -> l
     if not isinstance(texts, list):
         texts = [texts]
 
-    docs = nlp(texts)
+    docs = list(nlp.pipe(texts))
 
     results = []
     for doc in docs:
