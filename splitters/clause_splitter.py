@@ -102,21 +102,22 @@ class ClauseSplitter(BaseSplitter):
 
         results = []
         for doc in docs:
-            splits: list[dict] = []
-            used_tokens: set[int] = set()
-            root = next(t for t in doc if t.dep_ == "ROOT")
+            for sent in doc.sents:
+                splits: list[dict] = []
+                used_tokens: set[int] = set()
+                root = next(t for t in sent if t.dep_ == "ROOT")
 
-            nominal_groups = (
-                self.expand_nominal_conj(doc)
-                if "nominal_conj" in self.enabled_splits
-                else []
-            )
+                nominal_groups = (
+                    self.expand_nominal_conj(sent)
+                    if "nominal_conj" in self.enabled_splits
+                    else []
+                )
 
-            self._process_nominal_groups(doc, root, nominal_groups, splits, used_tokens)
-            self._process_subordinates(doc, splits, used_tokens)
-            self._process_main_clause(doc, root, nominal_groups, splits, used_tokens)
+                self._process_nominal_groups(sent, root, nominal_groups, splits, used_tokens)
+                self._process_subordinates(sent, splits, used_tokens)
+                self._process_main_clause(sent, root, nominal_groups, splits, used_tokens)
 
-            results.append([s["subordinate"] for s in splits])
+                results.append([s["subordinate"] for s in splits])
 
         return results
 
