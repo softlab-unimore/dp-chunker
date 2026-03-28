@@ -1,5 +1,7 @@
 numpy==1.26.4
 spacy==3.1.7
 thinc==8.0.17
-crosslingual-coreference
+#crosslingual-coreference
 en_core_web_lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.1.0/en_core_web_lg-3.1.0-py3-none-any.whl
+setuptools==65.6.3
+coreferee==1.4.1
