@@ -70,6 +70,7 @@ if __name__ == "__main__":
         for _, row in chunk.iterrows():
             paragraph = row["contents"]
             paragraph_id = row["id"]
+            paragraph = "\n".join(paragraph.splitlines()[1:])
             if not args["no_coreference"]:
                 paragraph = parse_and_resolve_coreferences(paragraph, MODEL_NAME)
 
