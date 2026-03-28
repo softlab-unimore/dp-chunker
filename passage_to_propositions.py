@@ -42,7 +42,7 @@ if __name__ == "__main__":
     MODEL_NAME = args['model']
     rules = None
     for k in args:
-        if k in ["input_csv", "output_csv"]:
+        if k in ["input_csv", "output_csv", "model"]:
             continue
 
         if args[k]:
