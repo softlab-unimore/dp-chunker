@@ -100,8 +100,9 @@ class ClauseSplitter(BaseSplitter):
 
         docs = list(self.nlp.pipe(sentences))
 
-        results = []
+        results_tot = []
         for doc in docs:
+            results = []
             for sent in doc.sents:
                 splits: list[dict] = []
                 used_tokens: set[int] = set()
@@ -117,9 +118,11 @@ class ClauseSplitter(BaseSplitter):
                 self._process_subordinates(sent, splits, used_tokens)
                 self._process_main_clause(sent, root, nominal_groups, splits, used_tokens)
 
-                results.append([s["subordinate"] for s in splits])
+                results.extend([s["subordinate"] for s in splits])
 
-        return results
+            results_tot.append(results)
+
+        return results_tot
 
 
     def expand_nominal_conj(self, doc) -> list[dict]:
