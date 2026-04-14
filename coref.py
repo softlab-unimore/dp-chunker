@@ -1,10 +1,26 @@
 import spacy
 from functools import lru_cache
 
+import stanza
+
+PRONOUNS = {
+    "he", "she", "it", "they", "him", "her", "them",
+    "his", "hers", "its", "their", "theirs",
+    "himself", "herself", "itself", "themselves",
+    "this", "that", "these", "those",
+    "who", "whom", "whose"
+}
+
+
 @lru_cache(maxsize=None)
 def get_nlp(model_name: str):
     nlp = spacy.load(model_name)
     nlp.add_pipe("coreferee")
+    return nlp
+
+@lru_cache(maxsize=None)
+def get_stanza(lang: str = "en"):
+    nlp = stanza.Pipeline(lang=lang, processors="tokenize,coref", model_dir='./stanza_resources')
     return nlp
 
 def resolve_coreferences(doc):
@@ -38,6 +54,61 @@ def parse_and_resolve_coreferences(texts: str | list[str], model_name: str) -> l
 
     return results
 
+
+def resolve_coreferences_with_stanza(doc: stanza.Document) -> str:
+    sentence_offsets = []
+    offset = 0
+    for sent in doc.sentences:
+        sentence_offsets.append(offset)
+        offset += len(sent.words)
+
+    all_words = [word for sent in doc.sentences for word in sent.words]
+
+    replacements = {}
+
+    for chain in doc.coref:
+        repr_idx = chain.representative_index
+
+        for i, mention in enumerate(chain.mentions):
+            if i == repr_idx:
+                continue
+
+            sent = doc.sentences[mention.sentence]
+            mention_words = sent.words[mention.start_word:mention.end_word]
+            mention_text = " ".join(w.text for w in mention_words)
+
+            if mention_text.lower().strip() not in PRONOUNS:
+                continue
+
+            sent_offset = sentence_offsets[mention.sentence]
+            global_start = sent_offset + mention.start_word
+            global_end = sent_offset + mention.end_word
+
+            replacements[global_start] = chain.representative_text
+            for j in range(global_start + 1, global_end):
+                replacements[j] = None
+
+    result = []
+    for i, word in enumerate(all_words):
+        if i in replacements:
+            if replacements[i] is not None:
+                result.append(replacements[i])
+        else:
+            result.append(word.text)
+
+    return " ".join(result)
+
+def parse_and_resolve_coreferences_with_stanza(texts: str | list[str], lang: str = "en") -> list[str]:
+    nlp = get_stanza(lang)
+
+    if not isinstance(texts, list):
+        texts = [texts]
+
+    docs = [nlp(text) for text in texts]
+
+    return [resolve_coreferences_with_stanza(doc) for doc in docs]
+
+
 if __name__ == "__main__":
     data = [
         {
@@ -65,15 +136,18 @@ if __name__ == "__main__":
         }
     ]
 
-    nlp = spacy.load("en_core_web_lg")
-    nlp.add_pipe("coreferee")
+    # nlp = spacy.load("en_core_web_lg")
+    # nlp.add_pipe("coreferee")
+    stanza.download("en", model_dir='./stanza_resources')
+    nlp = stanza.Pipeline(lang="en", processors="tokenize,coref", model_dir='./stanza_resources')
 
     for d in data:
         start, end = d['metadata']['content_span']
         content = d['content'][start:end]
 
         doc = nlp(content)
-        resolved_text = resolve_coreferences(doc)
+        # resolved_text = resolve_coreferences(doc)
+        resolved_text = resolve_coreferences_with_stanza(doc)
 
         # resolved_text = d['content'][:start] + resolved_text
         print("Original:", d['content'])

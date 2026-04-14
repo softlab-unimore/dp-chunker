@@ -89,3 +89,17 @@ def get_splitter(model: str, enabled_splits: frozenset):
 def splitter_fn(sentences: str | list[str], enabled_splits: list[str], model_name: str) -> list:
     splitter = get_splitter(model_name, frozenset(set(enabled_splits)))
     return splitter.split_sentence(sentences)
+
+
+if __name__ == "__main__":
+    # sentences = [' ! ( The Song Formerly Known As ) " is a song by Australian rock band Regurgitator ']
+    # sentences = ['! ( pronounced " blah " ) is the debut studio album by Portuguese singer Cláudia Pascoal .']
+    sentences = ['At the ARIA Music Awards of 1999 , the song was nominated for two awards ; ARIA Award for Best Group and ARIA Award for Single of the Year .']
+    results = splitter_fn(sentences, ALL_SPLIT_TYPES, "en_core_web_trf")
+
+    for sent in sentences:
+        print(f"Original: {sent}")
+        print("Splits:")
+        for res in results:
+            print(res)
+

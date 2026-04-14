@@ -33,6 +33,7 @@ class ClauseSplitter(BaseSplitter):
                             Pass ``None`` (default) to enable all types.
         """
         self.nlp = spacy.load(model)
+        self.nlp.tokenizer.add_special_case("!!!", [{"ORTH": "!!!"}])
         self.advcl_splitter     = AdvclSplitter(self.nlp)
         self.acl_splitter       = AclSplitter(self.nlp)
         self.relcl_splitter     = RelclSplitter(self.nlp)
@@ -104,6 +105,7 @@ class ClauseSplitter(BaseSplitter):
         for doc in docs:
             results = []
             for sent in doc.sents:
+                sent = self.nlp(sent.text)
                 splits: list[dict] = []
                 used_tokens: set[int] = set()
                 root = next(t for t in sent if t.dep_ == "ROOT")
@@ -460,7 +462,34 @@ class ClauseSplitter(BaseSplitter):
         """Dispatch all remaining tokens with a registered dependency label."""
         for token in doc:
             if token.dep_ in self.splitters and token.i not in used_tokens:
+                if token.dep_ in {"parataxis", "advcl"} and token.i < token.head.i:
+                    continue
                 self.dispatch(doc, token, splits, used_tokens)
+
+    def _collect_pre_root_idxs(self, doc, root) -> set:
+        """
+        Return the indices of all tokens that belong to a parataxis, advcl,
+        or punct that is attached directly to the ROOT and precedes it.
+        These tokens are titles/appositions and must be included in the main
+        clause even though they have dep labels that would normally be filtered.
+        """
+        idxs: set = set()
+
+        for token in doc:
+            if (
+                token.dep_ in {"parataxis", "advcl"}
+                and token.head == root
+                and token.i < root.i
+            ):
+                for t in token.subtree:
+                    if t.i < root.i:
+                        idxs.add(t.i)
+
+        for t in doc:
+            if t.dep_ == "punct" and t.head == root and t.i < root.i:
+                idxs.add(t.i)
+
+        return idxs
 
     def _process_main_clause(self, doc, root, nominal_groups, splits, used_tokens):
         """
@@ -479,10 +508,13 @@ class ClauseSplitter(BaseSplitter):
 
         relcl_heads = self._collect_top_level_relcl_heads(doc, root)
 
+        # Tokens belonging to pre-ROOT titles/appositions that must be kept
+        pre_root_idxs = self._collect_pre_root_idxs(doc, root)
+
         main_tokens = [
             t for t in doc
             if (t.i not in used_tokens or t.i in relcl_heads)
-            and t.dep_ not in {"punct", "mark", "cc"}
+            and (t.dep_ not in {"punct", "mark", "cc"} or t.i in pre_root_idxs)
         ]
         if main_tokens:
             splits.insert(0, {
