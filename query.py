@@ -152,12 +152,11 @@ if __name__ == "__main__":
     save_path = os.path.join(save_dir, f"{args.k}.csv")
 
     print("Querying...")
-    if not args.cluster:
-        predictions = query_faiss_index(
-            questions,
-            args.model,
-            index_path,
-            meta_path,
-            top_k=args.k,
-            save_path=save_path
-        )
+    predictions = query_faiss_index(
+        questions,
+        args.model,
+        index_path,
+        meta_path,
+        top_k=args.k,
+        save_path=save_path
+    )

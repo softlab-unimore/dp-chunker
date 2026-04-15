@@ -76,7 +76,8 @@ def main():
     total_seen = 0
     for i, chunk in tqdm(enumerate(reader), desc="Training sample collection"):
         texts = chunk["contents"].tolist()
-        texts = ["\n".join(text.split("\n")[1:]) for text in texts]
+        texts = [str(text) for text in texts]
+        #texts = ["\n".join(str(text).split("\n")[1:]) for text in texts]
 
         embs = get_embedding(texts, model)
         if dim is None:
@@ -111,7 +112,8 @@ def main():
 
     for chunk in tqdm(reader, desc="Adding to index"):
         texts = chunk["contents"].tolist()
-        texts = ["\n".join(text.split("\n")[1:]) for text in texts]
+        texts = [str(text) for text in texts]
+        #texts = ["\n".join(text.split("\n")[1:]) for text in texts]
         string_ids = chunk["id"].tolist()
 
         if future is None:

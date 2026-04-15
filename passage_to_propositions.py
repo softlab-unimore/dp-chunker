@@ -140,7 +140,7 @@ def process_rows(batch, use_coref, rules, model_name, chunk_size=64):
 
         if use_coref:
             # paragraphs = parse_and_resolve_coreferences(paragraphs, model_name)
-            paragraphs = parse_and_resolve_coreferences_with_stanza(paragraphs, model_name)
+            paragraphs = parse_and_resolve_coreferences_with_stanza(paragraphs, "en")
 
         list_props = splitter_fn(paragraphs, rules, model_name)
 
@@ -170,7 +170,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--input_csv", type=str, required=True)
     parser.add_argument("--output_csv", type=str, required=True)
-    parser.add_argument("--model", default="en_core_web_lg")
+    parser.add_argument("--model", default="en_core_web_trf")
     parser.add_argument("--num_workers", type=int, default=8)
 
     group = parser.add_mutually_exclusive_group(required=True)

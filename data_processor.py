@@ -15,7 +15,43 @@ index_paths = {
         "passage": {
             "index": "gtr-t5-base/gtr-t5-base_passages_index.faiss",
             "meta": "gtr-t5-base/gtr-t5-base_passages_meta.json",
-        }
+        },
+        "no_coreference": {
+            "index": "gtr-t5-base/gtr-t5-base_no_coreference_index.faiss",
+            "meta": "gtr-t5-base/gtr-t5-base_no_coreference_meta.json",
+        },
+	"all": {
+            "index": "gtr-t5-base/gtr-t5-base_all_index.faiss",
+            "meta": "gtr-t5-base/gtr-t5-base_all_meta.json",
+        },
+	"adjectives_only": {
+            "index": "gtr-t5-base/gtr-t5-base_adjectives_only_index.faiss",
+            "meta": "gtr-t5-base/gtr-t5-base_adjectives_only_meta.json",
+        },
+	"adnominals_only": {
+            "index": "gtr-t5-base/gtr-t5-base_adnominals_only_index.faiss",
+            "meta": "gtr-t5-base/gtr-t5-base_adnominals_only_meta.json",
+        },
+	"adverbs_only": {
+            "index": "gtr-t5-base/gtr-t5-base_adverbs_only_index.faiss",
+            "meta": "gtr-t5-base/gtr-t5-base_adverbs_only_meta.json",
+        },
+	"complements_only": {
+            "index": "gtr-t5-base/gtr-t5-base_complements_only_index.faiss",
+            "meta": "gtr-t5-base/gtr-t5-base_complements_only_meta.json",
+        },
+	"coordinates_only": {
+            "index": "gtr-t5-base/gtr-t5-base_coordinates_only_index.faiss",
+            "meta": "gtr-t5-base/gtr-t5-base_coordinates_only_meta.json",
+        },
+        "parataxis_only": {
+            "index": "gtr-t5-base/gtr-t5-base_parataxis_only_index.faiss",
+            "meta": "gtr-t5-base/gtr-t5-base_parataxis_only_meta.json",
+        },
+        "subordinates_only": {
+            "index": "gtr-t5-base/gtr-t5-base_subordinates_only_index.faiss",
+            "meta": "gtr-t5-base/gtr-t5-base_subordinates_only_meta.json",
+        },
     },
     "contriever": {
         "proposition": {
@@ -29,7 +65,43 @@ index_paths = {
         "passage": {
             "index": "contriever/contriever_passages_index.faiss",
             "meta": "contriever/contriever_passages_meta.json",
-        }
+        },
+	"no_coreference": {
+            "index": "contriever/contriever_no_coreference_index.faiss",
+            "meta": "contriever/contriever_no_coreference_meta.json",
+        },
+        "all": {
+            "index": "contriever/contriever_all_index.faiss",
+            "meta": "contriever/contriever_all_meta.json",
+        },
+        "adjectives_only": {
+            "index": "contriever/contriever_adjectives_only_index.faiss",
+            "meta": "contriever/contriever_adjectives_only_meta.json",
+        },
+	"adnominals_only": {
+            "index": "contriever/contriever_adnominals_only_index.faiss",
+            "meta": "contriever/contriever_adnominals_only_meta.json",
+        },
+	"adverbs_only": {
+            "index": "contriever/contriever_adverbs_only_index.faiss",
+            "meta": "contriever/contriever_adverbs_only_meta.json",
+        },
+        "complements_only": {
+            "index": "contriever/contriever_complements_only_index.faiss",
+            "meta": "contriever/contriever_complements_only_meta.json",
+        },
+	"coordinates_only": {
+            "index": "contriever/contriever_coordinates_only_index.faiss",
+            "meta": "contriever/contriever_coordinates_only_meta.json",
+        },
+	"parataxis_only": {
+            "index": "contriever/contriever_parataxis_only_index.faiss",
+            "meta": "contriever/contriever_parataxis_only_meta.json",
+        },
+        "subordinates_only": {
+            "index": "contriever/contriever_subordinates_only_index.faiss",
+            "meta": "contriever/contriever_subordinates_only_meta.json",
+        },
     },
     "multilingual-e5-large-instruct": {
         "proposition": {
@@ -43,7 +115,43 @@ index_paths = {
         "passage": {
             "index": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_passages_index.faiss",
             "meta": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_passages_meta.json",
-        }
+        },
+	"no_coreference": {
+            "index": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_no_coreference_index.faiss",
+            "meta": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_no_coreference_meta.json",
+        },
+        "all": {
+            "index": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_all_index.faiss",
+            "meta": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_all_meta.json",
+	},
+        "adjectives_only": {
+            "index": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_adjectives_only_index.faiss",
+            "meta": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_adjectives_only_meta.json",
+	},
+        "adnominals_only": {
+            "index": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_adnominals_only_index.faiss",
+            "meta": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_adnominals_only_meta.json",
+        },
+        "adverbs_only": {
+            "index": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_adverbs_only_index.faiss",
+            "meta": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_adverbs_only_meta.json",
+        },
+        "complements_only": {
+            "index": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_complements_only_index.faiss",
+            "meta": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_complements_only_meta.json",
+        },
+	"coordinates_only": {
+            "index": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_coordinates_only_index.faiss",
+            "meta": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_coordinates_only_meta.json",
+        },
+	"parataxis_only": {
+            "index": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_parataxis_only_index.faiss",
+            "meta": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_parataxis_only_meta.json",
+        },
+	"subordinates_only": {
+            "index": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_subordinates_only_index.faiss",
+            "meta": "multilingual-e5-large-instruct/multilingual-e5-large-instruct_subordinates_only_meta.json",
+        },
     },
     "sup-simcse-bert-base-uncased": {
         "proposition": {
@@ -57,7 +165,43 @@ index_paths = {
         "passage": {
             "index": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_passages_index.faiss",
             "meta": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_passages_meta.json",
-        }
+        },
+	"no_coreference": {
+            "index": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_no_coreference_index.faiss",
+            "meta": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_no_coreference_meta.json",
+        },
+        "all": {
+            "index": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_all_index.faiss",
+            "meta": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_all_meta.json",
+	},
+        "adjectives_only": {
+            "index": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_adjectives_only_index.faiss",
+            "meta": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_adjectives_only_meta.json",
+	},
+        "adnominals_only": {
+            "index": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_adnominals_only_index.faiss",
+            "meta": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_adnominals_only_meta.json",
+        },
+        "adverbs_only": {
+            "index": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_adverbs_only_index.faiss",
+            "meta": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_adverbs_only_meta.json",
+        },
+        "complements_only": {
+            "index": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_complements_only_index.faiss",
+            "meta": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_complements_only_meta.json",
+        },
+	"coordinates_only": {
+            "index": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_coordinates_only_index.faiss",
+            "meta": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_coordinates_only_meta.json",
+        },
+	"parataxis_only": {
+            "index": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_parataxis_only_index.faiss",
+            "meta": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_parataxis_only_meta.json",
+        },
+	"subordinates_only": {
+            "index": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_subordinates_only_index.faiss",
+            "meta": "sup-simcse-bert-base-uncased/sup-simcse-bert-base-uncased_subordinates_only_meta.json",
+        },
     },
 }
 

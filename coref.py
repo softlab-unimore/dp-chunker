@@ -1,6 +1,7 @@
 import spacy
 from functools import lru_cache
 
+from stanza.pipeline.core import DownloadMethod
 import stanza
 
 PRONOUNS = {
@@ -20,7 +21,7 @@ def get_nlp(model_name: str):
 
 @lru_cache(maxsize=None)
 def get_stanza(lang: str = "en"):
-    nlp = stanza.Pipeline(lang=lang, processors="tokenize,coref", model_dir='./stanza_resources')
+    nlp = stanza.Pipeline(lang=lang, processors="tokenize,coref", model_dir='./stanza_resources', download_method=DownloadMethod.REUSE_RESOURCES)
     return nlp
 
 def resolve_coreferences(doc):
@@ -139,7 +140,7 @@ if __name__ == "__main__":
     # nlp = spacy.load("en_core_web_lg")
     # nlp.add_pipe("coreferee")
     stanza.download("en", model_dir='./stanza_resources')
-    nlp = stanza.Pipeline(lang="en", processors="tokenize,coref", model_dir='./stanza_resources')
+    nlp = stanza.Pipeline(lang="en", processors="tokenize,coref", model_dir='./stanza_resources', download_method=DownloadMethod.REUSE_RESOURCES)
 
     for d in data:
         start, end = d['metadata']['content_span']

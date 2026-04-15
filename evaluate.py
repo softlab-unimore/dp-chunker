@@ -30,18 +30,11 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str, required=True)
     parser.add_argument('--dataset', type=str, required=True)
     parser.add_argument('--method', type=str, required=True)
-    parser.add_argument('--cluster', action="store_true", default=False)
     parser.add_argument('--k', type=int, default=5)
-    parser.add_argument('--cluster_weight', type=float, default=0.1)
     args = parser.parse_args()
 
-    if not args.cluster:
-        save_dir = os.path.join("predictions_clipped", args.dataset, args.model.split("/")[-1], args.method)
-        file_path = os.path.join(save_dir, f"{args.k}.csv")
-    else:
-        save_dir = os.path.join("predictions_clipped", args.dataset, args.model.split("/")[-1], args.method,
-                                f"cluster_{args.cluster_weight}")
-        file_path = os.path.join(save_dir, f"{args.k}.csv")
+    save_dir = os.path.join("predictions", args.dataset, args.model.split("/")[-1], args.method)
+    file_path = os.path.join(save_dir, f"{args.k}.csv")
 
     new_metric = os.path.join(save_dir, f"{args.k}_metric.csv")
 
@@ -79,7 +72,8 @@ if __name__ == "__main__":
     del df_tmp
     gc.collect()
     print("Building index...", flush=True)
-    if args.method != "proposition":
+
+    if args.method not in ["proposition", "no_coreference", "all", "adnominals_only", "adverbs_only", "adjectives_only", "complements_only", "parataxis_only", "subordinates_only", "coordinates_only"]:
         id2content = dict(zip(df["id"], df["contents"]))
         id2content_ok = True
     else:
@@ -109,7 +103,7 @@ if __name__ == "__main__":
         print(f"Query: {query}", flush=True)
         print(ids, flush=True)
         for id_ in ids:
-            if args.method in ["sentence", "proposition"]:
+            if args.method in ["sentence", "proposition", "no_coreference", "all", "adnominals_only", "adverbs_only", "adjectives_only", "complements_only", "parataxis_only", "subordinates_only", "coordinates_only"]:
                 id_ = "-".join(id_.split("-")[:-1])
 
             if not id2content_ok:
