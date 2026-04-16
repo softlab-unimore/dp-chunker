@@ -124,6 +124,41 @@ rule_mapping = {
     "complements_only": ["ccomp"]
 }
 
+def run_coref(batch, batch_size=128):
+    ids = []
+    paragraphs = []
+
+    for paragraph_id, paragraph in batch:
+        ids.append(paragraph_id)
+        paragraphs.append(remove_first_line(paragraph))
+
+    resolved = []
+    for i in range(0, len(paragraphs), batch_size):
+        resolved.extend(
+            parse_and_resolve_coreferences_with_stanza(
+                paragraphs[i:i+batch_size], "en"
+            )
+        )
+
+    return list(zip(ids, resolved))
+
+def split_rows(batch, rules, model_name):
+    rows = []
+
+    for paragraph_id, paragraph in batch:
+        props = splitter_fn([paragraph], rules, model_name)[0]
+
+        for j, prop in enumerate(props):
+            if j > 9999:
+                raise ValueError("a passage leads to more than 9999 propositions. Reduce passage size")
+
+            rows.append({
+                "id": f"{paragraph_id}-{j:04d}",
+                "contents": prop,
+                "metadata": {}
+            })
+
+    return rows
 
 def remove_first_line(text: str) -> str:
     lines = text.splitlines()
@@ -214,17 +249,22 @@ if __name__ == "__main__":
     first_write = True
 
     with ProcessPoolExecutor(max_workers=num_workers) as executor:
-        for chunk in tqdm(
-            pd.read_csv(input_csv, chunksize=chunk_size),
-            desc=f"Iterating over chunks of {chunk_size} size"
-        ):
+        for chunk in tqdm(pd.read_csv(input_csv, chunksize=chunk_size)):
             batch = [(row.id, row.contents) for row in chunk.itertuples(index=False)]
-            sub_batches = chunk_list(batch, num_workers)
 
+            if use_coref:
+                # single GPU process in main process
+                resolved_batch = run_coref(batch, batch_size=128)
+            else:
+                resolved_batch = [(pid, remove_first_line(text)) for pid, text in batch]
+
+            # now parallelize only CPU splitting
+            sub_batches = chunk_list(resolved_batch, num_workers)
+
+            print("Splitting rows in parallel...")
             futures = [
-                executor.submit(process_rows, sub_batch, use_coref, rules, model_name)
-                for sub_batch in sub_batches
-                if sub_batch
+                executor.submit(split_rows, sub_batch, rules, model_name)
+                for sub_batch in sub_batches if sub_batch
             ]
 
             rows = []
@@ -232,8 +272,7 @@ if __name__ == "__main__":
                 rows.extend(future.result())
 
             if rows:
-                out_df = pd.DataFrame(rows)
-                out_df.to_csv(
+                pd.DataFrame(rows).to_csv(
                     output_csv,
                     mode="a",
                     header=first_write,
