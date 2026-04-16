@@ -113,6 +113,9 @@ from concurrent.futures import ProcessPoolExecutor
 from splitter import splitter_fn
 from coref import parse_and_resolve_coreferences, parse_and_resolve_coreferences_with_stanza
 
+import warnings
+warnings.filterwarnings("ignore")
+
 rule_mapping = {
     "all": ["advcl", "acl", "relcl", "conj", "ccomp", "parataxis", "nominal_conj"],
     "coordinates_only": ["conj"],
