@@ -1,6 +1,6 @@
 numpy==1.26.4
 spacy==3.5.4
-thinc==8.0.17
+#thinc==8.0.17
 torch==2.5.1
 peft==0.6.2
 
@@ -10,3 +10,5 @@ setuptools==65.6.3
 coreferee==1.4.1
 stanza==1.9
 https://github.com/explosion/spacy-models/releases/download/en_core_web_trf-3.5.0/en_core_web_trf-3.5.0-py3-none-any.whl
+dotenv==0.9.9
+transformers==4.30.2

@@ -3,6 +3,7 @@ import pandas as pd
 import argparse
 from tqdm import tqdm
 from splitter import splitter_fn
+import multiprocessing as mp
 # from coref import parse_and_resolve_coreferences, parse_and_resolve_coreferences_with_stanza
 
 # rule_mapping = {
@@ -166,6 +167,7 @@ def chunk_list(lst, n_chunks):
 
 
 if __name__ == "__main__":
+    mp.set_start_method("spawn", force=True)
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--input_csv", type=str, required=True)
