@@ -1,14 +1,6 @@
-import os
 import re
-import argparse
 
 import spacy
-import pandas as pd
-from tqdm import tqdm
-
-# ---------------------------------------------------------------------------
-# Costanti
-# ---------------------------------------------------------------------------
 
 # Dipendenze considerate "complemento autonomo" (ognuna genera una prop.)
 COMPLEMENT_DEPS = {
