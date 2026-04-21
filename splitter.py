@@ -1,5 +1,5 @@
 import argparse
-from splitters.clause_splitter import ClauseSplitter
+from clause_splitters.clause_splitter import ClauseSplitter
 from functools import lru_cache
 
 ALL_SPLIT_TYPES = ClauseSplitter.ALL_SPLIT_TYPES

@@ -1,12 +1,12 @@
 import spacy
 
-from splitters.base_splitter import BaseSplitter
-from splitters.advcl_splitter import AdvclSplitter
-from splitters.acl_splitter import AclSplitter
-from splitters.relcl_splitter import RelclSplitter
-from splitters.conj_splitter import ConjSplitter
-from splitters.ccomp_splitter import CcompSplitter
-from splitters.parataxis_splitter import ParataxisSplitter
+from clause_splitters.base_splitter import BaseSplitter
+from clause_splitters.advcl_splitter import AdvclSplitter
+from clause_splitters.acl_splitter import AclSplitter
+from clause_splitters.relcl_splitter import RelclSplitter
+from clause_splitters.conj_splitter import ConjSplitter
+from clause_splitters.ccomp_splitter import CcompSplitter
+from clause_splitters.parataxis_splitter import ParataxisSplitter
 
 
 class ClauseSplitter(BaseSplitter):

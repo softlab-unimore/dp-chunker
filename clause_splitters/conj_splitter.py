@@ -1,4 +1,4 @@
-from splitters.base_splitter import BaseSplitter
+from clause_splitters.base_splitter import BaseSplitter
 
 
 class ConjSplitter(BaseSplitter):
