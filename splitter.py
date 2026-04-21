@@ -1,84 +1,21 @@
 import argparse
+import os
+
+import pandas as pd
+import spacy
+from tqdm import tqdm
+
 from clause_splitters.clause_splitter import ClauseSplitter
 from functools import lru_cache
+
+from complements_splitters.sentence_splitter import split_atomic
 
 ALL_SPLIT_TYPES = ClauseSplitter.ALL_SPLIT_TYPES
 
 DEFAULT_SENTENCES = [
-    # ── advcl ────────────────────────────────────────────────────────────────
-    # simple  --enable advcl
-    "She left early because she felt sick.",
-    "He called her when she arrived.",
-    # medium  --enable advcl ccomp
-    "She thinks that he left because he was angry.",
-    # complex  --enable advcl relcl
-    "The man who left because he was angry never returned.",
-
-    # ── acl ──────────────────────────────────────────────────────────────────
-    # simple  --enable acl
-    "She had a decision to make.",
-    # medium  --enable acl advcl
-    "He found a way to win before the time ran out.",
-    # complex  --enable acl relcl
-    "She had a plan to follow that her mentor recommended.",
-
-    # ── relcl ────────────────────────────────────────────────────────────────
-    # simple  --enable relcl
-    "The woman who called was his sister.",
-    "The man I met was a doctor.",
-    # medium  --enable relcl advcl
-    "The student who failed because she missed the exam asked for help.",
-    # complex  --enable relcl ccomp
-    "The book that the author who won the prize wrote inspired millions.",
-
-    # ── ccomp ────────────────────────────────────────────────────────────────
-    # simple  --enable ccomp
-    "She believes that he is innocent.",
-    # medium  --enable ccomp advcl
-    "She believes that he is innocent because the evidence is clear.",
-    # complex  --enable ccomp
-    "She knows that he believes that the earth is flat.",
-
-    # ── conj ─────────────────────────────────────────────────────────────────
-    # simple  --enable conj
-    "He came home and took a shower.",
-    "She cooked dinner and he washed the dishes.",
-    # medium  --enable conj ccomp
-    "She believes that he is innocent and that the judge agreed.",
-    # complex  --enable conj relcl ccomp
-    "He came home and said that the woman who called was his sister.",
-
-    # ── parataxis ────────────────────────────────────────────────────────────
-    # simple  --enable parataxis
-    "I know, I said it before.",
-    "She left early: she was tired.",
-    # medium  --enable parataxis advcl
-    "She left early: she was tired because the meeting had gone badly.",
-    # complex  --enable parataxis relcl ccomp
-    "The result was clear: the man who led the project had failed.",
-
-    # ── nominal_conj ─────────────────────────────────────────────────────────
-    # simple  --enable nominal_conj
-    "The scientists and engineers collaborated.",
-    "Senior and junior researchers presented.",
-    # medium  --enable nominal_conj advcl
-    "The managers and employees protested because the policy was unfair.",
-    # medium  --enable nominal_conj ccomp
-    "The directors and shareholders agreed that the merger was necessary.",
-    # complex  --enable nominal_conj relcl
-    "The doctors and nurses who treated him worked tirelessly.",
-    # complex  --enable nominal_conj relcl ccomp
-    "The managers and employees said that the policy was wrong because it hurt everyone.",
-
-    # ── ablation / cross-type ─────────────────────────────────────────────────
-    # --disable nominal_conj
-    "The professors and students who attended protested.",
-    # --disable relcl
-    "The scientist who discovered the cure said that he succeeded because he worked hard.",
-    # --disable ccomp parataxis
-    "I know, she believes that he is innocent because the evidence was clear.",
-    # --enable advcl ccomp relcl
-    "The scientist who discovered the cure said that he had a chance to publish because the journal accepted his work.",
+    '! ( pronounced " blah " ) is the debut studio album by Portuguese singer Cláudia Pascoal . the debut studio album '
+    'by Portuguese singer Cláudia Pascoal was released in Portugal on 27 March 2020 by Universal Music Portugal . The '
+    'album peaked at number six on the Portuguese Albums Chart .'
 ]
 
 
@@ -92,14 +29,66 @@ def splitter_fn(sentences: str | list[str], enabled_splits: list[str], model_nam
 
 
 if __name__ == "__main__":
-    # sentences = [' ! ( The Song Formerly Known As ) " is a song by Australian rock band Regurgitator ']
-    # sentences = ['! ( pronounced " blah " ) is the debut studio album by Portuguese singer Cláudia Pascoal .']
-    sentences = ['At the ARIA Music Awards of 1999 , the song was nominated for two awards ; ARIA Award for Best Group and ARIA Award for Single of the Year .']
-    results = splitter_fn(sentences, ALL_SPLIT_TYPES, "en_core_web_trf")
+    parser = argparse.ArgumentParser()
 
-    for sent in sentences:
-        print(f"Original: {sent}")
-        print("Splits:")
-        for res in results:
-            print(res)
+    parser.add_argument('--input_csv', type=str, required=True, help='path to input csv')
+    parser.add_argument('--output_csv', type=str, required=True, help='path to output csv')
+    parser.add_argument("--model", default="en_core_web_lg", help="spaCy model to use (default: en_core_web_lg).")
+
+    args = vars(parser.parse_args())
+
+    INPUT_CSV = args['input_csv']
+    OUTPUT_CSV = args['output_csv']
+    MODEL_NAME = args['model']
+
+    sentences = DEFAULT_SENTENCES
+    CHUNK_SIZE = 1000
+
+    # output file must be removed if we want a fresh run
+    if os.path.exists(OUTPUT_CSV):
+        raise ValueError(f"{OUTPUT_CSV} already exists. Cancel it before recomputing")
+
+    nlp = spacy.load("en_core_web_trf")
+    first_write = True
+
+    for chunk in tqdm(pd.read_csv(INPUT_CSV, chunksize=CHUNK_SIZE), desc=f"Iterating over chunks of {CHUNK_SIZE} size"):
+        rows = []
+
+        for row in tqdm(chunk.itertuples()):
+            paragraph = row.contents
+            paragraph_id = row.id
+            lines = str(paragraph).splitlines()
+            paragraph = "\n".join(paragraph.splitlines()[1:])
+
+            props = split_atomic(paragraph, nlp)
+
+            for prop in props:
+                print(prop)
+
+            print('here')
+
+            for i, prop in enumerate(props):
+                prop_num = str(i)
+                if len(prop_num) > 4:
+                    raise ValueError("a passage leads to more than 9999 propositions. Reduce passage size")
+
+                prop_num = "0" * (4 - len(prop_num)) + prop_num
+                rows.append({
+                    "id": paragraph_id + "-" + prop_num,
+                    "contents": prop,
+                    "metadata": {}
+                })
+
+        if rows:
+            out_df = pd.DataFrame(rows)
+
+            out_df.to_csv(
+                OUTPUT_CSV,
+                mode="a",
+                header=first_write,
+                index=False
+            )
+
+            first_write = False
+
 
