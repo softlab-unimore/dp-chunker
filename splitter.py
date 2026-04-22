@@ -9,6 +9,7 @@ from clause_splitters.clause_splitter import ClauseSplitter
 from functools import lru_cache
 
 from complements_splitters.sentence_splitter import split_atomic
+from coref import parse_and_resolve_coreferences_with_stanza
 
 ALL_SPLIT_TYPES = ClauseSplitter.ALL_SPLIT_TYPES
 
@@ -34,6 +35,7 @@ if __name__ == "__main__":
     parser.add_argument('--input_csv', type=str, required=True, help='path to input csv')
     parser.add_argument('--output_csv', type=str, required=True, help='path to output csv')
     parser.add_argument("--model", default="en_core_web_lg", help="spaCy model to use (default: en_core_web_lg).")
+    parser.add_argument('--no_coreference', action='store_true', help='if set, no coreference resolution will be performed')
 
     args = vars(parser.parse_args())
 
@@ -57,10 +59,14 @@ if __name__ == "__main__":
         for row in tqdm(chunk.itertuples()):
             paragraph = row.contents
             paragraph_id = row.id
-            lines = str(paragraph).splitlines()
+            # lines = str(paragraph).splitlines()
             paragraph = "\n".join(paragraph.splitlines()[1:])
 
-            props = split_atomic(paragraph, nlp)
+            if not args["no_coreference"]:
+                # paragraph = parse_and_resolve_coreferences(paragraph, MODEL_NAME)
+                paragraph = parse_and_resolve_coreferences_with_stanza(paragraph, lang="en")
+
+            props = split_atomic(paragraph[0], nlp)
 
             for prop in props:
                 print(prop)

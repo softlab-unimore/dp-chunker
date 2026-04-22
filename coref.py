@@ -110,7 +110,7 @@ def parse_and_resolve_coreferences_with_stanza(texts: str | list[str], lang: str
         texts = [texts]
 
     print("Parsing and resolving coreferences with Stanza...")
-    docs = nlp(texts) #[nlp(text) for text in texts]
+    docs = [nlp(text) for text in texts]
     print("done parsing with nlp. computing coreference resolution...", flush=True)
 
     return [resolve_coreferences_with_stanza(doc) for doc in docs]

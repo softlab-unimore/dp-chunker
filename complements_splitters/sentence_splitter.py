@@ -16,6 +16,7 @@ COMPLEMENT_DEPS = {
     "oprd",  # predicato oggetto
     "npadvmod",  # NP usato come avverbio
     "amod",  # aggettivo predicativo (raro sul verbo)
+    "advcl"
 }
 
 # Dipendenze di soggetto
@@ -149,6 +150,34 @@ def split_atomic(text: str, nlp) -> list[str]:
     return result
 
 
+def expand_pobj_appos(subj_text: str, verb: spacy.tokens.Token,
+                      prep_token: spacy.tokens.Token, propositions: list):
+    for pobj in prep_token.children:
+        if pobj.dep_ != "pobj":
+            continue
+
+        expansions = []
+        for child in pobj.children:
+            if child.dep_ in ("appos", "conj") and child.pos_ in ("NOUN", "PROPN"):
+                expansions.append(child)
+
+        # Proposizione base sempre emessa
+        prop = build_proposition(subj_text, verb, prep_token)
+        propositions.append(prop)
+
+        # Proposizioni per ogni espansione
+        for exp in expansions:
+            complement_text = get_span_text(exp)
+            aux_parts = [c.text for c in verb.children
+                         if c.dep_ in ("aux", "auxpass") and c.i < verb.i]
+            verb_phrase = " ".join(aux_parts + [verb.text])
+            proposition = f"{subj_text} {verb_phrase} {prep_token.text} {complement_text}".strip()
+            proposition = proposition[0].upper() + proposition[1:]
+            if not proposition.endswith((".", "?", "!")):
+                proposition += "."
+            propositions.append(proposition)
+
+
 def _process_sentence(verb: spacy.tokens.Token,
                       propositions: list,
                       inherited_subj: str | None) -> None:
@@ -169,8 +198,11 @@ def _process_sentence(verb: spacy.tokens.Token,
     if subj_text:
         for child in verb.children:
             if child.dep_ in COMPLEMENT_DEPS:
-                prop = build_proposition(subj_text, verb, child)
-                propositions.append(prop)
+                if child.dep_ == "prep":
+                    expand_pobj_appos(subj_text, verb, child, propositions)
+                else:
+                    prop = build_proposition(subj_text, verb, child)
+                    propositions.append(prop)
 
     # 3. Clausole complemento (ccomp): scendi ricorsivamente senza emettere
     #    una proposizione per il verbo reggente (said, claimed, believed...)
