@@ -13,7 +13,6 @@ COMPLEMENT_DEPS = {
     "pcomp",  # complemento di preposizione
     "agent",  # agente passivo
     "oprd",  # predicato oggetto
-    "npadvmod",  # NP usato come avverbio
     "amod",  # aggettivo predicativo (raro sul verbo)
     "advcl"
 }
@@ -271,7 +270,8 @@ def _process_sentence(verb: spacy.tokens.Token,
                     if has_verbal_pcomp:
                         for c in child.children:
                             if c.dep_ == "pcomp" and c.pos_ == "VERB":
-                                _process_sentence(c, propositions, inherited_subj=None)
+                                _process_sentence(c, propositions,
+                                                 inherited_subj=subj_text)  # fix: era None
                     else:
                         expand_pobj_appos(subj_text, verb, child, propositions)
                 elif child.dep_ == "dobj":
@@ -359,7 +359,8 @@ def _process_sentence(verb: spacy.tokens.Token,
                              inherited_subj=subj_text or inherited_subj,
                              inherited_verb_prefix=parent_verb_phrase)
         elif child.dep_ == "pcomp" and child.pos_ in ("VERB", "AUX"):
-            _process_sentence(child, propositions, inherited_subj=None)
+            _process_sentence(child, propositions,
+                             inherited_subj=subj_text or inherited_subj)  # fix: era None
 
     # 4. Congiunzioni verbali
     for child in verb.children:
@@ -371,4 +372,7 @@ def _process_sentence(verb: spacy.tokens.Token,
     for child in verb.children:
         if child.dep_ in ("relcl", "acl"):
             rel_subj = get_span_text(child.head) if child.head != verb else subj_text
+            # Salta acl con soggetto ereditato troppo lungo (probabile rumore)
+            if rel_subj and len(rel_subj.split()) > 6:
+                continue
             _process_sentence(child, propositions, inherited_subj=rel_subj)
