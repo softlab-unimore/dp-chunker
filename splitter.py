@@ -65,6 +65,8 @@ if __name__ == "__main__":
             if not args["no_coreference"]:
                 # paragraph = parse_and_resolve_coreferences(paragraph, MODEL_NAME)
                 paragraph = parse_and_resolve_coreferences_with_stanza(paragraph, lang="en")
+            else:
+                paragraph = [paragraph]
 
             props = split_atomic(paragraph[0], nlp)
 
