@@ -9,19 +9,22 @@ def preprocess(text: str):
         placeholders[key] = symbol
         return key
 
-    # Simbolo circondato da virgolette → placeholder (rimuove anche le virgolette)
+    processed = text
+
+    # Solo simboli NON-word tra virgolette → placeholder (es. "!", "♪", "#1")
+    # NON tocca nomi propri o testo normale come "Agent Hunter"
     processed = re.sub(
         r'["""\'\'«‹]([^\w\s"""\'\'«‹›»]+)["""\'\'›»]',
         lambda m: replace_symbol(m.group(1)),
-        text
+        processed
     )
 
-    # Titolo tra virgolette con testo aggiuntivo es. "! (The Song Formerly Known As)"
-    # → cattura il simbolo e butta il resto della parentetica
+    # Virgolette attorno a testo normale (parole) → rimuovi solo le virgolette,
+    # lascia il testo intatto. Es: "Agent Hunter" → Agent Hunter
     processed = re.sub(
-        r'["""\'\'«‹]([^\w\s"""\'\'«‹›»]+)[^"""\'\'›»]*["""\'\'›»]',
-        lambda m: replace_symbol(m.group(1)),
-        text
+        r'["""\'\'«‹](\w[^"""\'\'«‹›»]*\w)["""\'\'›»]',
+        lambda m: m.group(1).strip(),
+        processed
     )
 
     # Simbolo isolato a inizio frase
